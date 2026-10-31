@@ -1,0 +1,8 @@
+# Run results, screenshots, videos and traces: produced by every run, never shared through git.
+reports/
+test-results/
+node_modules/
+__pycache__/
+*.pyc
+# Office lock files while the workbook is open in Excel.
+~$*

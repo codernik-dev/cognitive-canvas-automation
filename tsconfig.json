@@ -1,0 +1,21 @@
+{
+  // Type-checks the automation suite on its own (npm run typecheck:automation).
+  // Not referenced from the root tsconfig: the app build should not depend on test code.
+  "compilerOptions": {
+    "target": "ES2023",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "types": ["node"],
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "verbatimModuleSyntax": true,
+    "allowImportingTsExtensions": false
+  },
+  "include": ["**/*.ts"],
+  "exclude": ["reports"]
+}

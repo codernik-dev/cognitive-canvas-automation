@@ -1,0 +1,105 @@
+[
+ {
+  "id": "DEF-007",
+  "title": "The app cannot open without internet, even after it has been used online",
+  "pri": "P1",
+  "steps": [
+   "Open the app with internet on, set a PIN, open a PDF.",
+   "Turn the internet off.",
+   "Reload the page."
+  ],
+  "extra": [],
+  "tests": "OFF-000, OFF-001",
+  "expected": "the app opens and the PDF is still there (the app is meant to work offline after the first visit).",
+  "actual": "the offline helper (service worker) is never installed, so with no internet the page does not load. The app does work while you stay on the page; it is the reload or reopen that fails.",
+  "module": "Offline & PWA"
+ },
+ {
+  "id": "DEF-001",
+  "title": "Find in document says it found the word but does not take you to it",
+  "pri": "P1",
+  "steps": [
+   "Open a PDF with several pages, staying on page 1.",
+   "Open Find and search for a word that appears only on a later page, for example page 4.",
+   "Press Enter."
+  ],
+  "extra": [],
+  "tests": "REG-020",
+  "expected": "the viewer moves to page 4 and shows the word.",
+  "actual": "the counter shows \"1 of 1\", but the viewer stays on page 1. It also happens for page 2. It only works if you have already scrolled to that page earlier.",
+  "module": "PDF viewer & Find"
+ },
+ {
+  "id": "DEF-002",
+  "title": "Restoring the wrong kind of file only says \"Restore failed\"",
+  "pri": "P2",
+  "steps": [
+   "Open Backup & Restore, choose Restore, then Local.",
+   "Select a file that is not a backup, for example a text file renamed to `.zip`.",
+   "Press Restore Now and confirm."
+  ],
+  "extra": [],
+  "tests": "REG-072",
+  "expected": "a message that says why, for example \"This file is not a ZIP archive, so it cannot be a backup or a catalog package.\"",
+  "actual": "only \"Restore failed\" is shown, with no reason. Nothing in the library changes, which is correct.",
+  "module": "Backup & restore"
+ },
+ {
+  "id": "DEF-004",
+  "title": "Uploading a broken PDF from Home leaves an empty project behind",
+  "pri": "P2",
+  "steps": [
+   "On the Home screen with no projects, press Upload.",
+   "Choose a PDF file that is damaged."
+  ],
+  "extra": [],
+  "tests": "REG-018",
+  "expected": "the file is refused and no project is created.",
+  "actual": "the file is refused, but a project called \"New Project 1\" with \"0 docs\" stays on the Home screen.",
+  "module": "Projects"
+ },
+ {
+  "id": "DEF-006",
+  "title": "A new text box on the canvas does not take typing straight away",
+  "pri": "P2",
+  "steps": [
+   "Open a PDF.",
+   "Choose the Text tool on the canvas and click an empty spot.",
+   "Start typing."
+  ],
+  "extra": [
+   "Possibly the same problem as open issue #336 (\"ipad > canvas tool > text > unable to enter text in text box\"), here seen on desktop."
+  ],
+  "tests": "REG-055 (and REG-069 for the workaround)",
+  "expected": "the typed words go into the new text box.",
+  "actual": "the box still says \"Text\" and the typing goes nowhere. You must click the box once more before typing works.",
+  "module": "Canvas"
+ },
+ {
+  "id": "DEF-003",
+  "title": "Messages that pop up at the corner are not read out by screen readers",
+  "pri": "P2",
+  "steps": [
+   "With a screen reader on, upload a PDF (or do anything that shows a corner message such as \"… uploaded\" or \"PIN updated.\")."
+  ],
+  "extra": [],
+  "tests": "A11Y-004",
+  "expected": "the screen reader reads the message.",
+  "actual": "the messages are not marked as announcements, so a screen reader stays silent.",
+  "module": "Accessibility"
+ },
+ {
+  "id": "DEF-005",
+  "title": "The Change PIN boxes have no spoken names",
+  "pri": "P3",
+  "steps": [
+   "Open the profile menu, then Change PIN.",
+   "Move through the three boxes with a screen reader."
+  ],
+  "extra": [],
+  "tests": "A11Y-005",
+  "expected": "each box is announced as \"Current PIN\", \"New PIN\" and \"Confirm new PIN\".",
+  "actual": "the words are shown above the boxes but are not connected to them, so the boxes are announced without names.",
+  "module": "Accessibility"
+ }
+]

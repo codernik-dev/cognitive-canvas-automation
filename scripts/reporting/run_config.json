@@ -1,0 +1,333 @@
+{
+ "_how": "Edit after each run: name/date/commit, the results.json files of the full run (first) and of performance, cross-browser and live, the performance results file used for the speed table, one entry in failures for each unexpected failure of the full run (test, device, cause, verdict, after_recheck; the report build stops until every failure is traced), any targeted re-runs (their results replace \"Latest\"), and append a row to history: [run, date, scope, passed, expected_fail, failed, flaky, duration, what happened]. Paths are relative to the repository root.",
+ "name": "Run 10",
+ "date": "2026-10-31",
+ "commit": "c54e7e2",
+ "branch": "AbhishekBugs",
+ "label": "Run 10 is the full regression run on the final, reviewed suite (2026-10-31, 2 workers, 60 minutes, another project's test runs loading the machine): chromium, phone, tablet, ipad and offline. It followed a review of every complex-tool and backup test that made 35 tests prove more (stored content, exact positions, what is on screen), added a page-in-view check to every page-number check, and found app defect DEF-213. Its 6 failures were each traced (see Run History and the failures table): 5 GitHub tests that hung together for 3 minutes under load and then passed 15 of 15 on re-check, and the intermittent tablet defect DEF-806. Performance comes from Performance 3 (alone, one worker; the machine was never quiet enough to re-measure fairly), cross-browser from Cross-browser 3, and the real-server results from Live 4 (REG-900 to REG-907).",
+ "files": [
+  "automation/reports/run-10/results.json",
+  "automation/reports/platform-perf/results.json",
+  "automation/reports/run-9-crossbrowser/results.json",
+  "automation/reports/live-4/results.json"
+ ],
+ "performance": "automation/reports/platform-perf/results.json",
+ "failures": [
+  {
+   "test": "REG-476",
+   "device": "Desktop Chrome",
+   "cause": "Automatic backup to GitHub. Hung with 3 others in the same 3 minutes of heavy machine load: the simulated MoBrowser host never answered the push, so no result came back. Passed 3 of 3 on re-check, and in a separate run of both GitHub spec files.",
+   "verdict": "Machine load",
+   "after_recheck": "Passed 3 of 3"
+  },
+  {
+   "test": "REG-102",
+   "device": "Desktop Chrome",
+   "cause": "GitHub push. Hung with 3 others in the same 3 minutes of heavy machine load: the simulated MoBrowser host never answered the push, so no result came back. Passed 3 of 3 on re-check, and in a separate run of both GitHub spec files.",
+   "verdict": "Machine load",
+   "after_recheck": "Passed 3 of 3"
+  },
+  {
+   "test": "REG-457",
+   "device": "Desktop Chrome",
+   "cause": "GitHub backup note. Hung with 3 others in the same 3 minutes of heavy machine load: the simulated MoBrowser host never answered the push, so no result came back. Passed 3 of 3 on re-check, and in a separate run of both GitHub spec files.",
+   "verdict": "Machine load",
+   "after_recheck": "Passed 3 of 3"
+  },
+  {
+   "test": "REG-489",
+   "device": "Desktop Chrome",
+   "cause": "GitHub chunked push: the push finished but the restore list then came back empty, in the same 3-minute window.",
+   "verdict": "Machine load",
+   "after_recheck": "Passed 3 of 3"
+  },
+  {
+   "test": "REG-462",
+   "device": "Desktop Chrome",
+   "cause": "GitHub restore list did not load, in the same 3-minute window.",
+   "verdict": "Machine load",
+   "after_recheck": "Passed 3 of 3"
+  },
+  {
+   "test": "REG-866",
+   "device": "Tablet (touch)",
+   "cause": "App defect DEF-806 (intermittent): page 2 of a freshly opened PDF was on screen but never drawn.",
+   "verdict": "App defect",
+   "after_recheck": "Failed 1 of 3, same cause"
+  }
+ ],
+ "reruns": [
+  {
+   "name": "Run 10 re-check (3 times each, 2026-10-31)",
+   "files": [
+    "automation/reports/run-10-recheck/results.json"
+   ]
+  }
+ ],
+ "history": [
+  [
+   "Module: Documents, viewer, OCR",
+   "2026-10-30",
+   "Final clean run of the module (chromium, 1 worker)",
+   104,
+   10,
+   0,
+   0,
+   "18 min",
+   "Each module was built and run on its own first; this is its last clean run."
+  ],
+  [
+   "Module: Canvas and media",
+   "2026-10-30",
+   "Final clean run of the module (chromium, 1 worker)",
+   116,
+   11,
+   0,
+   0,
+   "12 min 30 s",
+   "Before one duplicate test (REG-395, now reused for a new case) was removed."
+  ],
+  [
+   "Module: Backup, Data Center, plans",
+   "2026-10-30",
+   "Final clean run of the module (chromium, 1 worker)",
+   111,
+   6,
+   0,
+   0,
+   "25 min 24 s",
+   ""
+  ],
+  [
+   "Module: Sharing",
+   "2026-10-30",
+   "Final clean run of the module (chromium, 1 worker)",
+   76,
+   7,
+   0,
+   0,
+   "22 min 18 s",
+   ""
+  ],
+  [
+   "Module: Shell, settings, tours",
+   "2026-10-30",
+   "Final clean run of the module (chromium, 1 worker)",
+   119,
+   7,
+   0,
+   0,
+   "29 min 30 s",
+   "Before one duplicate test (REG-639) was removed."
+  ],
+  [
+   "Module: Catalog, assistant, support, law",
+   "2026-10-30",
+   "Final clean run of the module (chromium, 1 worker)",
+   92,
+   8,
+   0,
+   0,
+   "14 min 42 s",
+   ""
+  ],
+  [
+   "Module: Phone, tablet, iPad",
+   "2026-10-30",
+   "Final clean run of the module (phone, tablet, ipad, 1 worker)",
+   80,
+   6,
+   0,
+   0,
+   "10 min 30 s",
+   "Plus 1 parked case (REG-886, Blocked)."
+  ],
+  [
+   "Module: Persistence + accessibility",
+   "2026-10-30",
+   "Final clean run (chromium, 1 worker)",
+   40,
+   35,
+   0,
+   0,
+   "",
+   ""
+  ],
+  [
+   "Module: Offline",
+   "2026-10-30",
+   "Final clean run (offline project, 1 worker)",
+   3,
+   10,
+   0,
+   0,
+   "",
+   ""
+  ],
+  [
+   "Performance 3",
+   "2026-10-30",
+   "8 performance budgets, alone, 1 worker, CPU about 30 %",
+   8,
+   0,
+   0,
+   0,
+   "2 min 29 s",
+   "Run of record for performance: measured numbers in 09 §3."
+  ],
+  [
+   "Run 8",
+   "2026-10-30",
+   "FULL regression on the finished suite: chromium, phone, tablet, ipad, offline; 2 workers",
+   743,
+   98,
+   6,
+   0,
+   "58 min 41 s",
+   "6 failures, each traced: REG-660/661 froze while the laptop was in Modern Standby for 12 minutes (Windows power log); REG-104 and REG-524 were test-code timing/order assumptions, fixed; REG-304 exposed new app defect DEF-312 (test split, new REG-395); REG-862 hit the intermittent tablet defect DEF-806."
+  ],
+  [
+   "Run 8 re-run",
+   "2026-10-30",
+   "The 7 affected tests, 3 times each, PC kept awake",
+   16,
+   3,
+   2,
+   0,
+   "3 min 19 s",
+   "All fixed tests 3/3; REG-395 reproduced DEF-312 3/3; REG-862 failed 2 of 3 on DEF-806 (page 2 on screen but never drawn on the tablet)."
+  ],
+  [
+   "Run 8 supplement",
+   "2026-10-30",
+   "REG-395, the one case added after Run 8, in a normal run (1 worker, PC awake)",
+   0,
+   1,
+   0,
+   0,
+   "0 min 58 s",
+   "Reproduced DEF-312 at the stacking-order check after the reload."
+  ],
+  [
+   "Cross-browser 2",
+   "2026-10-30",
+   "Smoke on Firefox and WebKit",
+   16,
+   0,
+   0,
+   0,
+   "1 min 47 s",
+   ""
+  ],
+  [
+   "Live 1",
+   "2026-10-31",
+   "Real MuulOrigin sign-in, real Muul Cloud backup/restore round trip and real sign-out (QA account, opt-in live project)",
+   3,
+   0,
+   0,
+   0,
+   "1 min 54 s",
+   "Two earlier attempts stopped on test mistakes (a project name with hyphens, which the app correctly refuses; reading the cloud list before it loaded); both fixed. The account's 3 existing backups were left untouched and nothing the run created remained in the cloud."
+  ],
+  [
+   "Live sync",
+   "2026-10-31",
+   "REG-907: real cloud auto-sync between two browsers on the QA account",
+   1,
+   0,
+   0,
+   0,
+   "2 min 12 s",
+   "Passed on both of its runs that night (1.6 min and 2.2 min)."
+  ],
+  [
+   "Live MoBrowser",
+   "2026-10-31",
+   "REG-903 to REG-906 in the real MoBrowser (test profile, driven over WebDriver BiDi with real clicks and keys)",
+   2,
+   0,
+   0,
+   0,
+   "58 s",
+   "REG-905/906 skipped: they wait for the test repository and the QA folder to be added once in the MoBrowser test profile. The nine attempts before it each stopped on a mistake in the new driver or the test (sign-in race, picker wording, slow shutdown), never on the app; each was fixed."
+  ],
+  [
+   "Run 9",
+   "2026-10-31",
+   "FULL regression on the finished suite: chromium, phone, tablet, ipad, offline; 2 workers",
+   749,
+   99,
+   0,
+   0,
+   "80 min 46 s",
+   "No unexpected failure and nothing flaky. Every Run 8 fix held; REG-395 reproduced DEF-312; REG-862 passed this time (DEF-806 is intermittent). CPU was at 100 % throughout from another project's test runs."
+  ],
+  [
+   "Live 4",
+   "2026-10-31",
+   "The whole live suite on the QA account: real sign-in, cloud round trip, sign-out, cross-device sync, MoBrowser host and pickers",
+   6,
+   0,
+   0,
+   0,
+   "5 min 6 s",
+   "REG-905/906 skipped (MoBrowser test-profile setup pending). The account's existing backups were untouched and nothing the run created remained in the cloud."
+  ],
+  [
+   "Cross-browser 3",
+   "2026-10-31",
+   "Smoke on Firefox and WebKit, on the final suite",
+   16,
+   0,
+   0,
+   0,
+   "2 min 13 s",
+   ""
+  ],
+  [
+   "Review fixes",
+   "2026-10-31",
+   "21 spec files: those the review changed and every file using the new page-in-view check (chromium + tablet)",
+   183,
+   19,
+   8,
+   0,
+   "19 min 52 s",
+   "8 failures, each traced: 4 were my new page-in-view check not handling single-page view and 3 were mistakes in new assertions (zoom measured too early, a text box's fitted height, a dismiss after the toast had gone); all fixed. The 8th, REG-031, is a real app defect, DEF-213, confirmed 3 of 3."
+  ],
+  [
+   "Review re-run",
+   "2026-10-31",
+   "The fixed tests, the 3 files edited during the review run, and REG-031 three times",
+   36,
+   2,
+   3,
+   0,
+   "5 min 1 s",
+   "All fixes passed; REG-031 failed 3 of 3 on DEF-213 and is now marked as expected to fail."
+  ],
+  [
+   "Run 10",
+   "2026-10-31",
+   "FULL regression on the final, reviewed suite: chromium, phone, tablet, ipad, offline; 2 workers",
+   742,
+   100,
+   6,
+   0,
+   "59 min 56 s",
+   "6 failures, each traced: 5 GitHub tests hung together for 3 minutes under heavy machine load and passed 15 of 15 on re-check; REG-866 hit the intermittent tablet defect DEF-806. REG-031 reproduced the new defect DEF-213."
+  ],
+  [
+   "Run 10 re-check",
+   "2026-10-31",
+   "The 6 affected tests, 3 times each",
+   17,
+   0,
+   1,
+   0,
+   "2 min 27 s",
+   "GitHub tests 15 of 15; REG-866 failed 1 of 3 on DEF-806 (page 2 never drawn)."
+  ]
+ ]
+}

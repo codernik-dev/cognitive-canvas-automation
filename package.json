@@ -1,0 +1,24 @@
+{
+  "name": "cognitive-canvas-automation",
+  "private": true,
+  "description": "Playwright automation suite for Cognitive Canvas. Lives in the app's folder as automation/ and uses the app's installed Playwright.",
+  "type": "module",
+  "scripts": {
+    "setup": "npm --prefix .. install --no-save @axe-core/playwright@4.13.0 && playwright install chromium webkit firefox",
+    "build-app": "npm --prefix .. run build",
+    "smoke": "playwright test -c playwright.config.ts --project=chromium --grep @smoke",
+    "sanity": "playwright test -c playwright.config.ts --project=chromium --project=phone --project=tablet --project=ipad --project=offline --grep @sanity",
+    "p1": "playwright test -c playwright.config.ts --project=chromium --project=phone --project=tablet --project=ipad --project=offline --grep @P1",
+    "regression": "playwright test -c playwright.config.ts --project=chromium --project=phone --project=tablet --project=ipad --project=offline",
+    "performance": "playwright test -c playwright.config.ts --project=performance --workers=1",
+    "a11y": "playwright test -c playwright.config.ts --project=chromium --grep @a11y",
+    "cross-browser": "playwright test -c playwright.config.ts --project=firefox --project=webkit",
+    "live": "playwright test -c playwright.config.ts --project=live --workers=1",
+    "all": "playwright test -c playwright.config.ts",
+    "ui": "playwright test -c playwright.config.ts --ui",
+    "report": "playwright show-report reports/html",
+    "typecheck": "tsc -p tsconfig.json",
+    "inventory": "node scripts/build-inventory.mjs",
+    "mobrowser:setup": "node scripts/mobrowser-setup.mjs"
+  }
+}

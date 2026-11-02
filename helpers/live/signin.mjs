@@ -14,7 +14,7 @@ import { createRequire } from 'node:module'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-const require = createRequire(path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..', 'package.json'))
+const require = createRequire(path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', 'package.json'))
 const { chromium } = require('@playwright/test')
 
 const [out] = process.argv.slice(2)

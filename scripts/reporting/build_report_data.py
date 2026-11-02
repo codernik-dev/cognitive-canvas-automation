@@ -1,17 +1,17 @@
 """CSV data files for the manager's QA report page, from the workbook and the run results.
 
-  python automation/scripts/reporting/build_report_data.py [workbook.xlsx]
+  python scripts/reporting/build_report_data.py [workbook.xlsx]
 
-Writes automation/reports/reporting/qa-report-data/*.csv. Upload them to the report to refresh it."""
+Writes reports/reporting/qa-report-data/*.csv. Upload them to the report to refresh it."""
 import csv, json, os, re, sys
 from collections import Counter, defaultdict
 import openpyxl
 
-REPO = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', '..'))
-R = os.path.join(REPO, 'automation', 'reports')
+REPO = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))
+R = os.path.join(REPO, 'reports')
 HERE = os.path.join(R, 'reporting', 'qa-report-data')
 os.makedirs(HERE, exist_ok=True)
-WB = sys.argv[1] if len(sys.argv) > 1 else os.path.join(REPO, 'automation', 'docs', 'Cognitive-Canvas-Test-Suites.xlsx')
+WB = sys.argv[1] if len(sys.argv) > 1 else os.path.join(REPO, 'docs', 'Cognitive-Canvas-Test-Suites.xlsx')
 wb = openpyxl.load_workbook(WB, read_only=True)
 
 

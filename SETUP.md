@@ -2,29 +2,19 @@
 
 This guide takes you from nothing to your first green test run, in about 20 minutes. Follow the steps in order and copy each command exactly. No account, password or secret is needed for the normal test runs.
 
-## How the two repositories fit together
+## How it fits together
 
-The tests check the Cognitive Canvas app, so you need **two** repositories on your machine:
-
-| Repository | What it holds | Where it goes |
-|---|---|---|
-| The **app** (Cognitive Canvas) | the product code | any folder, for example `D:\github\Cognitive-Canvas` |
-| This **automation** repository | the test scripts, test data and docs | **inside** the app folder, in a folder named `automation` |
-
-When you are done, it looks like this:
+This repository stands alone. It holds the test scripts, test data and docs, its own Playwright, and a copy of the app to test:
 
 ```text
-Cognitive-Canvas\            <- the app repository
-├── src\                     <- app code (never change it)
-├── dist\                    <- the built app, which the tests open
-├── node_modules\            <- the app's tools, including Playwright
-└── automation\              <- THIS repository
-    ├── tests\               <- the test scripts, one folder per kind of testing
-    ├── docs\                <- the workbook, defect list and reports
-    └── package.json         <- the short commands (npm run smoke, …)
+cognitive-canvas-automation\
+├── tests\             <- the test scripts, one folder per kind of testing
+├── docs\              <- the workbook, defect list and reports
+├── app\               <- the app under test: its build and a few source files (never in git)
+└── package.json       <- the short commands (npm run smoke, …)
 ```
 
-The tests use the app's own copy of Playwright and serve the app's built `dist` folder. That is why this repository must sit inside the app folder.
+The `app\` folder is made by `npm run sync-app` and is never committed, because this repository is public.
 
 ## 1. What you need
 
@@ -33,7 +23,7 @@ The tests use the app's own copy of Playwright and serve the app's built `dist` 
 | Git | any recent | `git --version` |
 | Node.js | 20.19 or newer (22 or 24 recommended) | `node --version` |
 | Disk space | about 3 GB | |
-| Access to the app repository | ask your lead | |
+| A built copy of the app (or access to its repository) | ask your lead | |
 
 Windows 10/11, macOS and Linux all work. On Windows, use PowerShell, Git Bash or the VS Code terminal.
 
@@ -42,47 +32,40 @@ Only for some extras (skip these at first):
 - **MoBrowser:** for the MoBrowser live tests.
 - **The QA test account (from your lead):** for the live tests.
 
-## 2. Get both repositories
+## 2. Get this repository and install its tools
 
 ```bash
-git clone <app-repository-url> Cognitive-Canvas
-cd Cognitive-Canvas
-git clone https://github.com/codernik-dev/cognitive-canvas-automation.git automation
+git clone https://github.com/codernik-dev/cognitive-canvas-automation.git
+cd cognitive-canvas-automation
+npm ci
 ```
 
-The last word, `automation`, matters: the folder must have exactly that name.
+## 3. Copy in the app to test
 
-So the app repository does not show the new folder as a change, add it to the app's local ignore list (this changes nothing in the app code or on GitHub):
-
-```bash
-echo automation/ >> .git/info/exclude
-```
-
-## 3. Install the app's tools and build the app
-
-From the app folder (`Cognitive-Canvas`):
+You need a built checkout of the app somewhere on your machine. If it is not built yet, run this in the app's folder:
 
 ```bash
 npm ci
 npm run build
 ```
 
-`npm ci` installs the app's tools, Playwright included. `npm run build` makes `dist/`, the app the tests open. Build again after every `git pull` of the app.
+Then, from this repository, copy it in. Use your own path to the app:
+
+```bash
+npm run sync-app -- D:\github\Cognitive-Canvas
+```
+
+This only reads the app's folder. After it, the app's folder can be moved or deleted and the tests still run. When the app changes, build it and run `npm run sync-app` again. `app/snapshot.json` says which commit you are testing.
 
 ## 4. One-time setup of the test browsers
 
-From the automation folder:
-
 ```bash
-cd automation
 npm run setup
 ```
 
-This installs the accessibility-check library into the app's tools, without changing the app's files. It also downloads Playwright's test browsers: Chromium, WebKit (Safari's engine) and Firefox. These are separate test copies, never the browsers you use every day. On Linux, run `npx playwright install-deps` once afterwards.
+This downloads Playwright's test browsers: Chromium, WebKit (Safari's engine) and Firefox. These are separate test copies, never the browsers you use every day. On Linux, run `npx playwright install-deps` once afterwards.
 
 ## 5. Your first run
-
-Still in the automation folder:
 
 ```bash
 npm run smoke
@@ -98,7 +81,7 @@ If you see 8 green tests, you are set up.
 
 ## 6. Everyday commands
 
-Run every command from the `automation` folder.
+Run every command from this repository's folder.
 
 | You want to | Command | Tests | Time |
 |---|---|---|---|
@@ -170,11 +153,11 @@ Always close your own MoBrowser before `npm run live`.
 
 | You see | Do this |
 |---|---|
-| `dist/index.html is missing` | In the app folder: `npm run build` |
-| `dist/ is older than src/` | You pulled new app code: `npm run build` in the app folder |
-| `playwright: command not found` or `Cannot find module '@playwright/test'` | Run `npm ci` in the app folder first; check this folder is named `automation` and sits inside the app folder |
+| `app\dist\index.html is missing` | `npm run sync-app -- <app folder>` |
+| `dist/ is older than src/` | You pulled new app code: `npm run build` in the app's folder, then `npm run sync-app -- <app folder>` |
+| `playwright: command not found` or `Cannot find module '@playwright/test'` | Run `npm ci` in this folder |
 | `Executable doesn't exist` for a browser | `npm run setup` |
-| Accessibility tests fail with `Cannot find package '@axe-core/playwright'` | `npm run setup` (it is needed again after every `npm ci` in the app folder) |
+| Accessibility tests fail with `Cannot find package '@axe-core/playwright'` | `npm ci` in this folder |
 | Every test times out at the start | Port 4173 is busy: close the other program, or set `CC_PORT=4180` |
 | Many unrelated timeouts, PDFs stuck on "Loading PDF…" | The machine is overloaded: close other heavy programs and test runs |
 | Live tests are all "skipped" | `CC_LIVE_EMAIL` / `CC_LIVE_PASSWORD` are not set in this terminal |

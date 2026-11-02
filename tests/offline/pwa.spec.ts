@@ -15,12 +15,13 @@
  */
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
+import { DIST_DIR } from '../../config/env.js'
 import { test, expect } from '../../fixtures/test.js'
 import { knownDefect } from '../../helpers/defects.js'
 import { UpdateBanner } from '../../pages/PlatformScreens.js'
 import type { BrowserContext, Page } from '@playwright/test'
 
-const SERVED_SW = readFileSync(path.resolve(import.meta.dirname, '..', '..', '..', 'dist', 'sw.js'), 'utf8')
+const SERVED_SW = readFileSync(path.join(DIST_DIR, 'sw.js'), 'utf8')
 const VERSION = /'cognitive-canvas-cache-' \+ \('([^']*)'\)/
 const CURRENT_VERSION = SERVED_SW.match(VERSION)?.[1]
 const NEXT_VERSION = 'automation-next-build'

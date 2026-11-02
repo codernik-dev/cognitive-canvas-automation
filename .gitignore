@@ -2,6 +2,8 @@
 reports/
 test-results/
 node_modules/
+# The app under test (npm run sync-app): its build and source files never go in this public repository.
+app/
 __pycache__/
 *.pyc
 # Office lock files while the workbook is open in Excel.

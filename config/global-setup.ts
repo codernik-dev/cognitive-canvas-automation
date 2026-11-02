@@ -6,12 +6,11 @@
 import { existsSync, readdirSync, readFileSync, statSync, writeFileSync, mkdirSync } from 'node:fs'
 import path from 'node:path'
 import type { FullConfig } from '@playwright/test'
-import { ENV, baseURL, reportsFolder } from './env.js'
+import { ENV, APP_DIR, AUTOMATION_DIR, DIST_DIR, baseURL, reportsFolder } from './env.js'
 
-const ROOT = path.resolve(import.meta.dirname, '..', '..')
-const DIST = path.join(ROOT, 'dist')
+const DIST = DIST_DIR
 // The run's own report folder, where the summary reporter looks for this file.
-const REPORTS = path.join(ROOT, 'automation', reportsFolder)
+const REPORTS = path.join(AUTOMATION_DIR, reportsFolder)
 
 function newestMtime(dir: string): number {
   let newest = 0
@@ -38,16 +37,16 @@ export default async function globalSetup(config: FullConfig) {
     return
   }
   if (!existsSync(path.join(DIST, 'index.html'))) {
-    throw new Error('[automation] dist/index.html is missing. Run `npm run build` before the suite.')
+    throw new Error(`[automation] ${path.join(DIST, 'index.html')} is missing. Build the app, then run: npm run sync-app -- <app folder>`)
   }
   const distAge = statSync(path.join(DIST, 'index.html')).mtimeMs
-  const srcAge = newestMtime(path.join(ROOT, 'src'))
+  const srcAge = newestMtime(path.join(APP_DIR, 'src'))
   const stale = srcAge > distAge
   const msg = `[automation] dist built ${new Date(distAge).toISOString()}; newest src change ${new Date(srcAge).toISOString()}`
   if (stale) {
     // A stale build tests yesterday's app. CI always builds first, so this is a local mistake: say it loudly.
     if (ENV.ci) throw new Error(`${msg}. dist/ is older than src/: rebuild.`)
-    console.warn(`${msg}\n[automation] WARNING: dist/ is older than src/. Results describe the old build. Run \`npm run build\`.`)
+    console.warn(`${msg}\n[automation] WARNING: dist/ is older than src/. Results describe the old build. Build the app, then run \`npm run sync-app -- <app folder>\`.`)
   } else {
     console.log(msg)
   }

@@ -2,11 +2,12 @@
  * The test-data catalogue: every file a spec uploads, with the facts a test
  * asserts about it written next to the bytes that produce them.
  *
- * Generated files are built in memory (no binaries in git). The two
- * committed binaries are the legacy e2e PDF/MP3 (reused, not copied) and an
- * encrypted PDF that needs a real security handler to produce.
+ * Generated files are built in memory (no binaries in git). The legacy e2e
+ * PDF/MP3 are reused from the app snapshot (app/e2e/fixtures). The one committed
+ * binary is an encrypted PDF that needs a real security handler to produce.
  */
 import path from 'node:path'
+import { APP_DIR, AUTOMATION_DIR } from '../config/env.js'
 import { buildTextPdf, type PdfPageSpec } from './builders/pdf.js'
 import { buildPng } from './builders/png.js'
 
@@ -16,16 +17,14 @@ export interface FilePayload {
   buffer: Buffer
 }
 
-const ROOT = path.resolve(import.meta.dirname, '..', '..')
-
 /** Committed binaries. */
 export const BINARY = {
   /** The legacy e2e fixture: 6 pages, a "Singleton Pattern" article. Card name "cc2-e2e-doc". */
-  legacyPdf: path.join(ROOT, 'e2e', 'fixtures', 'cc2-e2e-doc.pdf'),
+  legacyPdf: path.join(APP_DIR, 'e2e', 'fixtures', 'cc2-e2e-doc.pdf'),
   /** 319 422-byte MP3 tone (legacy e2e fixture). */
-  toneMp3: path.join(ROOT, 'e2e', 'fixtures', 'tone.mp3'),
+  toneMp3: path.join(APP_DIR, 'e2e', 'fixtures', 'tone.mp3'),
   /** AES-256 encrypted, user password "secret" (made once with PyMuPDF; see data/README.md). */
-  encryptedPdf: path.join(ROOT, 'automation', 'data', 'static', 'encrypted.pdf'),
+  encryptedPdf: path.join(AUTOMATION_DIR, 'data', 'static', 'encrypted.pdf'),
 }
 
 /** Four pages whose words are known, for find, navigation and highlight specs. */

@@ -6,12 +6,12 @@
  "branch": "AbhishekBugs",
  "label": "Run 10 is the full regression run on the final, reviewed suite (2026-10-31, 2 workers, 60 minutes, another project's test runs loading the machine): chromium, phone, tablet, ipad and offline. It followed a review of every complex-tool and backup test that made 35 tests prove more (stored content, exact positions, what is on screen), added a page-in-view check to every page-number check, and found app defect DEF-213. Its 6 failures were each traced (see Run History and the failures table): 5 GitHub tests that hung together for 3 minutes under load and then passed 15 of 15 on re-check, and the intermittent tablet defect DEF-806. Performance comes from Performance 3 (alone, one worker; the machine was never quiet enough to re-measure fairly), cross-browser from Cross-browser 3, and the real-server results from Live 4 (REG-900 to REG-907).",
  "files": [
-  "automation/reports/run-10/results.json",
-  "automation/reports/platform-perf/results.json",
-  "automation/reports/run-9-crossbrowser/results.json",
-  "automation/reports/live-4/results.json"
+  "reports/run-10/results.json",
+  "reports/platform-perf/results.json",
+  "reports/run-9-crossbrowser/results.json",
+  "reports/live-4/results.json"
  ],
- "performance": "automation/reports/platform-perf/results.json",
+ "performance": "reports/platform-perf/results.json",
  "failures": [
   {
    "test": "REG-476",
@@ -60,7 +60,7 @@
   {
    "name": "Run 10 re-check (3 times each, 2026-10-31)",
    "files": [
-    "automation/reports/run-10-recheck/results.json"
+    "reports/run-10-recheck/results.json"
    ]
   }
  ],

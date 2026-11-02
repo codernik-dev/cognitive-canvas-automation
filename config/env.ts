@@ -3,6 +3,8 @@
  * Specs and page objects import from here; nothing else reads process.env.
  */
 
+import path from 'node:path'
+
 const num = (v: string | undefined, fallback: number) => (v && Number.isFinite(Number(v)) ? Number(v) : fallback)
 
 export const ENV = {
@@ -41,6 +43,15 @@ export const ENV = {
   liveEmail: process.env.CC_LIVE_EMAIL || undefined,
   livePassword: process.env.CC_LIVE_PASSWORD || undefined,
 } as const
+
+/** This repository's root. */
+export const AUTOMATION_DIR = path.resolve(import.meta.dirname, '..')
+/**
+ * The app under test: app/ (the snapshot npm run sync-app makes, git-ignored), or
+ * a full checkout of the app named by CC_APP_DIR. Both have the same layout.
+ */
+export const APP_DIR = process.env.CC_APP_DIR ? path.resolve(process.env.CC_APP_DIR) : path.join(AUTOMATION_DIR, 'app')
+export const DIST_DIR = path.join(APP_DIR, 'dist')
 
 export const baseURL = ENV.baseUrlOverride ?? `http://127.0.0.1:${ENV.port}`
 

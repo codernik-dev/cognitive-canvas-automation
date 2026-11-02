@@ -25,6 +25,7 @@ import { execFile } from 'node:child_process'
 import { existsSync, mkdtempSync, rmSync, statSync } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
+import { DIST_DIR } from '../config/env.js'
 import { promisify } from 'node:util'
 import type { BrowserContext, Page } from '@playwright/test'
 import { test as base, expect } from './test.js'
@@ -33,7 +34,7 @@ import { CognitiveCanvas } from '../pages/CognitiveCanvas.js'
 
 export const LIVE_ORIGIN = 'https://cognitivecanvas.muulorigin.com'
 export const LIVE_API = 'https://api.muulorigin.com'
-const DIST = path.resolve(import.meta.dirname, '..', '..', 'dist')
+const DIST = DIST_DIR
 const SIGNIN = path.resolve(import.meta.dirname, '..', 'helpers', 'live', 'signin.mjs')
 const isMuul = (u: URL) => u.hostname === 'muulorigin.com' || u.hostname.endsWith('.muulorigin.com')
 

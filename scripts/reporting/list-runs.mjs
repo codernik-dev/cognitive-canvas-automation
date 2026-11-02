@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 /**
  * Writes Playwright's test list for each run command (what each npm script
- * would execute) to automation/reports/reporting/<run>.json. build_workbook.py
+ * would execute) to reports/reporting/<run>.json. build_workbook.py
  * reads them to fill the "In ... Run" columns and the Suite Structure sheet.
  *
- *   node automation/scripts/reporting/list-runs.mjs
+ *   node scripts/reporting/list-runs.mjs
  *
  * Listing collects tests without starting the server or opening a browser.
  * Keep RUNS in step with the test:* scripts in package.json.
@@ -14,8 +14,8 @@ import { mkdirSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..')
-const OUT = process.env.CC_REPORTING_DIR ?? path.join(ROOT, 'automation', 'reports', 'reporting')
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..')
+const OUT = process.env.CC_REPORTING_DIR ?? path.join(ROOT, 'reports', 'reporting')
 const DEVICES = ['--project=chromium', '--project=phone', '--project=tablet', '--project=ipad', '--project=offline']
 
 const RUNS = {
@@ -34,7 +34,7 @@ const RUNS = {
 mkdirSync(OUT, { recursive: true })
 const cli = path.join(ROOT, 'node_modules', '@playwright', 'test', 'cli.js')
 for (const [name, args] of Object.entries(RUNS)) {
-  execFileSync(process.execPath, [cli, 'test', '-c', path.join(ROOT, 'automation', 'playwright.config.ts'), ...args, '--list', '--reporter=json'], {
+  execFileSync(process.execPath, [cli, 'test', '-c', path.join(ROOT, 'playwright.config.ts'), ...args, '--list', '--reporter=json'], {
     cwd: ROOT,
     env: { ...process.env, PLAYWRIGHT_JSON_OUTPUT_NAME: path.join(OUT, `${name}.json`) },
     stdio: ['ignore', 'ignore', 'inherit'],

@@ -23,7 +23,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { test as base, expect } from '@playwright/test'
 import { MoBrowser, MOBROWSER_EXE, find, profileLocked, userProfiles } from '../helpers/mobrowser/bidi.js'
-import { ENV } from '../config/env.js'
+import { ENV, DIST_DIR } from '../config/env.js'
 import { LIVE_ORIGIN } from './live.js'
 
 export const MO_PROFILE = process.env.CC_MOBROWSER_PROFILE ?? path.join(process.env.LOCALAPPDATA ?? os.homedir(), 'cognitive-canvas-qa', 'mobrowser-profile')
@@ -31,7 +31,7 @@ export const MO_PROFILE = process.env.CC_MOBROWSER_PROFILE ?? path.join(process.
 export const MO_TEST_FOLDER = process.env.CC_MOBROWSER_TEST_FOLDER ?? path.join(os.homedir(), 'Documents', 'CognitiveCanvas-QA-Backups')
 /** The only repository the GitHub tests may push to. */
 export const MO_TEST_REPO = process.env.CC_MOBROWSER_TEST_REPO ?? 'cc'
-const DIST = path.resolve(import.meta.dirname, '..', '..', 'dist')
+const DIST = DIST_DIR
 const APP_DB = 'cognitive-canvas'
 
 /** The user's own MoBrowser is open when any of their profiles is locked. */

@@ -1,7 +1,7 @@
 """Builds docs/Cognitive-Canvas-Test-Suites.xlsx from the inventory CSV, the Playwright --list output of
 each run command (list-runs.mjs) and the run results named in run_config.json.
 
-  python automation/scripts/reporting/build_workbook.py [out.xlsx]
+  python scripts/reporting/build_workbook.py [out.xlsx]
 
 Read-only over the repo except for the one output file. Needs Python 3 with openpyxl."""
 import csv, json, math, os, re, sys
@@ -13,15 +13,15 @@ from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.table import Table, TableStyleInfo
 
 HERE = Path(__file__).resolve().parent
-REPO = HERE.parents[2]
+REPO = HERE.parents[1]
 # Listings and other generated inputs (git-ignored, under reports/).
-WORK = Path(os.environ.get('CC_REPORTING_DIR', REPO / 'automation' / 'reports' / 'reporting'))
-OUT = Path(sys.argv[1]) if len(sys.argv) > 1 else REPO / 'automation' / 'docs' / 'Cognitive-Canvas-Test-Suites.xlsx'
+WORK = Path(os.environ.get('CC_REPORTING_DIR', REPO / 'reports' / 'reporting'))
+OUT = Path(sys.argv[1]) if len(sys.argv) > 1 else REPO / 'docs' / 'Cognitive-Canvas-Test-Suites.xlsx'
 
 ID_RE = re.compile(r'\b((?:SMK|SAN|REG|PST|OFF|A11Y|PRF|API)-\d{3})\b')
 
 # ---------- inputs ----------
-inv = list(csv.DictReader(open(REPO / 'automation/data/test-inventory.csv', encoding='utf-8')))
+inv = list(csv.DictReader(open(REPO / 'data/test-inventory.csv', encoding='utf-8')))
 
 
 def walk(suite, path):
@@ -40,7 +40,7 @@ def listing(name):
             if not m:
                 continue
             e = out[m.group(1)]
-            e['file'] = 'automation/tests/' + sp['file']
+            e['file'] = 'tests/' + sp['file']
             e['line'] = sp['line']
             e['group'] = ' > '.join(path[1:])
             e['tags'] = ' '.join('@' + t for t in sp['tags'])
@@ -127,7 +127,7 @@ for p in FINAL_RUN['files']:
         _visit(s)
 # Then the literal knownDefect('DEF-nnn') calls in each test body, for tests the run did not include.
 TEST_RE = re.compile(r"\btest(?:\.\w+)?\(\s*['\"`]((?:SMK|SAN|REG|PST|OFF|A11Y|PRF|API)-\d{3})\b")
-for spec in sorted((REPO / 'automation/tests').rglob('*.spec.ts')):
+for spec in sorted((REPO / 'tests').rglob('*.spec.ts')):
     current = None
     for line in spec.read_text(encoding='utf-8').splitlines():
         m = TEST_RE.search(line)
@@ -168,7 +168,7 @@ for r in inv:
     parked = bool(a) and not auto
     known = 'known defect' in r['status']
     status = 'Automated (expected fail)' if known else ('Automated' if auto else r['status'])
-    folder = a['file'].split('/')[2] if a else None
+    folder = a['file'].split('/')[1] if a else None
     sub = FOLDER_SUB[folder] if a else PREFIX_SUB[cid.split('-')[0]]
     steps = [s.strip() for s in r['steps'].split(';') if s.strip()]
     steps_txt = '\n'.join(f'{i}. {s[0].upper() + s[1:]}' for i, s in enumerate(steps, 1)) if len(steps) > 1 else (steps[0] if steps else '')
@@ -381,10 +381,10 @@ row += 1
 
 # 2. regression by sub-suite
 section('2. Regression suite by sub-suite (where the scripts live)',
-        'The Regression suite is split into sub-suites by folder under automation/tests. "Functional" is the module-wise folder automation/tests/regression, one spec file per module.')
+        'The Regression suite is split into sub-suites by folder under tests. "Functional" is the module-wise folder tests/regression, one spec file per module.')
 header(['Regression sub-suite', 'Total cases', 'Automated', 'of which expected fail (known defect)', 'Not automated', 'Automation coverage', 'P1 cases', 'P1 automated', 'Script folder'])
-FOLDER_OF = {'Functional': 'automation/tests/regression', 'Responsive (phone/tablet/iPad)': 'automation/tests/responsive', 'Live (real servers)': 'automation/tests/live', 'API / Integrations': 'automation/tests/api',
-             'Persistence': 'automation/tests/persistence', 'Offline': 'automation/tests/offline', 'Accessibility': 'automation/tests/accessibility', 'Performance': 'automation/tests/performance'}
+FOLDER_OF = {'Functional': 'tests/regression', 'Responsive (phone/tablet/iPad)': 'tests/responsive', 'Live (real servers)': 'tests/live', 'API / Integrations': 'tests/api',
+             'Persistence': 'tests/persistence', 'Offline': 'tests/offline', 'Accessibility': 'tests/accessibility', 'Performance': 'tests/performance'}
 first = row
 for sub in SUB_ORDER[2:]:
     r_ = row
@@ -467,7 +467,7 @@ for cid, e in sorted(ALL.items(), key=lambda kv: (kv[1]['file'], kv[1]['line']))
 FILE_ORDER = ['smoke', 'sanity', 'regression', 'responsive', 'live', 'api', 'persistence', 'offline', 'accessibility', 'performance']
 by_id = {r['Test Case ID']: r for r in rows}
 srows = []
-for f in sorted(files, key=lambda f: (FILE_ORDER.index(f.split('/')[2]), f)):
+for f in sorted(files, key=lambda f: (FILE_ORDER.index(f.split('/')[1]), f)):
     ids = files[f]
     groups = list(OrderedDict.fromkeys(ALL[i]['group'] for i in ids))
     mods = list(OrderedDict.fromkeys(by_id[i]['Module'] for i in ids))
@@ -475,7 +475,7 @@ for f in sorted(files, key=lambda f: (FILE_ORDER.index(f.split('/')[2]), f)):
     picked = [n for n, _, _, _, col, lst, _ in RUN_ROWS if any(i in lst for i in ids)]
     projects = sorted({p for i in ids for p in ALL[i]['projects']}, key=PROJECT_ORDER.index)
     srows.append(OrderedDict([
-        ('Test Suite', ' + '.join(suites)), ('Sub-suite', FOLDER_SUB[f.split('/')[2]]), ('Test Suite File (spec)', f),
+        ('Test Suite', ' + '.join(suites)), ('Sub-suite', FOLDER_SUB[f.split('/')[1]]), ('Test Suite File (spec)', f),
         ('Modules Covered', ', '.join(mods)), ('Test Groups In File', '\n'.join(groups)), ('Test Case IDs', ', '.join(ids)),
         ('Tests In File', None), ('P1 Tests', None), ('Expected-fail Tests', None), ('Browser / Project', ', '.join(projects)), ('Picked Up By', '\n'.join(picked)),
     ]))
@@ -577,7 +577,7 @@ write_table(kd, list(kd_rows[0].keys()), kd_rows, 'DefectsFound', start_row=4, f
 rh = wb.create_sheet('Run History')
 rh['A1'] = 'Every recorded run'
 rh['A1'].font = f_title
-rh['A2'] = 'Copied from the run summaries saved after each run (automation/docs/09-FINAL-QA-REPORT.md). Runs 1-6 used 4 workers; later runs used 1 or 2.'
+rh['A2'] = 'Copied from the run summaries saved after each run (docs/09-FINAL-QA-REPORT.md). Runs 1-6 used 4 workers; later runs used 1 or 2.'
 rh['A2'].font = f_note
 HIST = [
     ('Run 1', '2026-10-29', 'Full regression (chromium, phone, tablet, offline; performance included)', 112, 8, 1, 0, '7 min 43 s', 'REG-037: the wait for a toast was shorter than two uploads take under load. Test code fixed.'),

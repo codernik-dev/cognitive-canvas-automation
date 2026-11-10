@@ -1,6 +1,6 @@
-"""Writes automation/docs/08-DEFECTS-AND-LIMITATIONS.md from the defect register.
+"""Writes docs/08-DEFECTS-AND-LIMITATIONS.md from the defect register.
 
-  python automation/scripts/reporting/build_defects_doc.py   (reads run_config.json for the run that reproduced each defect)
+  python scripts/reporting/build_defects_doc.py   (reads run_config.json for the run that reproduced each defect)
 
 Same sources as the workbook: defects_old.json + defects_register.NEW, the knownDefect()
 calls in the specs (which test asserts which defect), and the final run's results.
@@ -10,7 +10,7 @@ from collections import OrderedDict, defaultdict
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-REPO = HERE.parents[2]
+REPO = HERE.parents[1]
 sys.path.insert(0, str(HERE))
 from defects_register import NEW  # noqa: E402
 
@@ -36,7 +36,7 @@ for f in RUN['files']:
     for s in json.load(open(REPO / f, encoding='utf-8'))['suites']:
         _visit(s)
 # ... then the literal calls in the specs.
-for spec in sorted((REPO / 'automation/tests').rglob('*.spec.ts')):
+for spec in sorted((REPO / 'tests').rglob('*.spec.ts')):
     cur = None
     for line in spec.read_text(encoding='utf-8').splitlines():
         m = TEST_RE.search(line)
@@ -47,7 +47,7 @@ for spec in sorted((REPO / 'automation/tests').rglob('*.spec.ts')):
                 TESTS_OF[d].append(cur)
 # Data-driven tests (titles built in a loop) are not visible to the scan above; take them from the inventory status.
 import csv  # noqa: E402
-for r in csv.DictReader(open(REPO / 'automation/data/test-inventory.csv', encoding='utf-8')):
+for r in csv.DictReader(open(REPO / 'data/test-inventory.csv', encoding='utf-8')):
     for d in re.findall(r'DEF-\d{3}', r['status']):
         if r['id'] not in TESTS_OF[d]:
             TESTS_OF[d].append(r['id'])
@@ -93,7 +93,8 @@ def tests_line(d):
 L = []
 L += ['# 08 — Defects and Limitations', '',
       f"Checked on commit `{RUN['commit']}`, production build. Desktop Chrome (1366×800) unless the area says otherwise; phone = Pixel 5 emulation, tablet = 1024×1366 Chromium "
-      'with touch, iPad = WebKit with the iPad profile. Every defect below was reproduced by an automated test, except the four marked *intermittent*, which were seen but cannot '
+      'with touch, iPad = WebKit with the iPad profile. Every defect below was reproduced by an automated test, except the '
+      f"{({1: 'one', 2: 'two', 3: 'three', 4: 'four', 5: 'five', 6: 'six', 7: 'seven', 8: 'eight', 9: 'nine'}).get(n_int, n_int)} marked *intermittent*, which were seen but cannot "
       'be reproduced on demand. Priorities are suggestions. None has been filed as a GitHub issue.', '',
       '## Summary', '',
       '| Suggested priority | Defects | of which intermittent |', '|---|---:|---:|']
@@ -116,11 +117,13 @@ for d in defects:
         L += [f'  {i}. {s}' for i, s in enumerate(d['steps'], 1)]
     L.append(f"- **Expected:** {d.get('expected', '')}")
     L.append(f"- **Actual:** {d.get('actual', '')}")
+    if d.get('dev'):
+        L.append(f"- **For developers:** {d['dev']}")
     for e in d.get('extra', []):
         L.append(f'- {e}')
     L.append('')
 
 L += [(HERE / 'defects_doc_tail.md').read_text(encoding='utf-8').rstrip(), '']
-out = Path(sys.argv[1]) if len(sys.argv) > 1 else REPO / 'automation/docs/08-DEFECTS-AND-LIMITATIONS.md'
+out = Path(sys.argv[1]) if len(sys.argv) > 1 else REPO / 'docs/08-DEFECTS-AND-LIMITATIONS.md'
 out.write_text('\n'.join(L), encoding='utf-8')
 print('written', out, len(defects), 'defects', dict(counts), 'intermittent', n_int)

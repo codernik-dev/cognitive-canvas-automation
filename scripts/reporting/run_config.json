@@ -1,66 +1,29 @@
 {
  "_how": "Edit after each run: name/date/commit, the results.json files of the full run (first) and of performance, cross-browser and live, the performance results file used for the speed table, one entry in failures for each unexpected failure of the full run (test, device, cause, verdict, after_recheck; the report build stops until every failure is traced), any targeted re-runs (their results replace \"Latest\"), and append a row to history: [run, date, scope, passed, expected_fail, failed, flaky, duration, what happened]. Paths are relative to the repository root.",
- "name": "Run 10",
- "date": "2026-10-31",
+ "name": "Run 13",
+ "date": "2026-11-09",
  "commit": "c54e7e2",
  "branch": "AbhishekBugs",
- "label": "Run 10 is the full regression run on the final, reviewed suite (2026-10-31, 2 workers, 60 minutes, another project's test runs loading the machine): chromium, phone, tablet, ipad and offline. It followed a review of every complex-tool and backup test that made 35 tests prove more (stored content, exact positions, what is on screen), added a page-in-view check to every page-number check, and found app defect DEF-213. Its 6 failures were each traced (see Run History and the failures table): 5 GitHub tests that hung together for 3 minutes under load and then passed 15 of 15 on re-check, and the intermittent tablet defect DEF-806. Performance comes from Performance 3 (alone, one worker; the machine was never quiet enough to re-measure fairly), cross-browser from Cross-browser 3, and the real-server results from Live 4 (REG-900 to REG-907).",
+ "label": "Run 13 is the full regression on the final suite (2026-11-09, 2 workers, 37 minutes): chromium, phone, tablet, ipad and offline, 857 tests, no unexpected failure and nothing flaky. It followed a review of the whole app for screens no test reached, which added REG-941 to REG-945 (recordings on their way in a live share, the crash screen, a class shared live straight after it is made) and found app defects DEF-514 and DEF-515. The first full run that day (856 tests, before REG-945) also had no unexpected failure. Performance and cross-browser come from the same day (8 / 8, 16 / 16). The real-server results come from Run 13 live (31 tests, one at a time), whose 6 failures were each traced (see Run History): 3 tests gave up after 30 s on the server's list of live shares, which took 42 s (new server defect DEF-516, now tested by REG-946); 2 shared to a class seconds after making it and hit DEF-515; 1 lost its PIN input in MoBrowser. After the fixes they passed on re-check, and REG-946 reproduced DEF-516.",
  "files": [
-  "automation/reports/run-10/results.json",
-  "automation/reports/platform-perf/results.json",
-  "automation/reports/run-9-crossbrowser/results.json",
-  "automation/reports/live-4/results.json"
+  "reports/run-13-final/results.json",
+  "reports/run-13-performance/results.json",
+  "reports/run-13-crossbrowser/results.json",
+  "reports/run-13-live/results.json"
  ],
- "performance": "automation/reports/platform-perf/results.json",
- "failures": [
-  {
-   "test": "REG-476",
-   "device": "Desktop Chrome",
-   "cause": "Automatic backup to GitHub. Hung with 3 others in the same 3 minutes of heavy machine load: the simulated MoBrowser host never answered the push, so no result came back. Passed 3 of 3 on re-check, and in a separate run of both GitHub spec files.",
-   "verdict": "Machine load",
-   "after_recheck": "Passed 3 of 3"
-  },
-  {
-   "test": "REG-102",
-   "device": "Desktop Chrome",
-   "cause": "GitHub push. Hung with 3 others in the same 3 minutes of heavy machine load: the simulated MoBrowser host never answered the push, so no result came back. Passed 3 of 3 on re-check, and in a separate run of both GitHub spec files.",
-   "verdict": "Machine load",
-   "after_recheck": "Passed 3 of 3"
-  },
-  {
-   "test": "REG-457",
-   "device": "Desktop Chrome",
-   "cause": "GitHub backup note. Hung with 3 others in the same 3 minutes of heavy machine load: the simulated MoBrowser host never answered the push, so no result came back. Passed 3 of 3 on re-check, and in a separate run of both GitHub spec files.",
-   "verdict": "Machine load",
-   "after_recheck": "Passed 3 of 3"
-  },
-  {
-   "test": "REG-489",
-   "device": "Desktop Chrome",
-   "cause": "GitHub chunked push: the push finished but the restore list then came back empty, in the same 3-minute window.",
-   "verdict": "Machine load",
-   "after_recheck": "Passed 3 of 3"
-  },
-  {
-   "test": "REG-462",
-   "device": "Desktop Chrome",
-   "cause": "GitHub restore list did not load, in the same 3-minute window.",
-   "verdict": "Machine load",
-   "after_recheck": "Passed 3 of 3"
-  },
-  {
-   "test": "REG-866",
-   "device": "Tablet (touch)",
-   "cause": "App defect DEF-806 (intermittent): page 2 of a freshly opened PDF was on screen but never drawn.",
-   "verdict": "App defect",
-   "after_recheck": "Failed 1 of 3, same cause"
-  }
- ],
+ "performance": "reports/run-13-performance/results.json",
+ "failures": [],
  "reruns": [
   {
-   "name": "Run 10 re-check (3 times each, 2026-10-31)",
+   "name": "Run 13 live re-check (one at a time, after the fixes, 2026-11-09)",
    "files": [
-    "automation/reports/run-10-recheck/results.json"
+    "reports/run-13-live-recheck/results.json"
+   ]
+  },
+  {
+   "name": "Run 13 MoBrowser re-check (twice, 2026-11-09)",
+   "files": [
+    "reports/run-13-mobrowser-recheck/results.json"
    ]
   }
  ],
@@ -328,6 +291,182 @@
    0,
    "2 min 27 s",
    "GitHub tests 15 of 15; REG-866 failed 1 of 3 on DEF-806 (page 2 never drawn)."
+  ],
+  [
+   "Run 11",
+   "2026-11-02",
+   "FULL regression in the standalone repository: chromium, phone, tablet, ipad, offline; 2 workers",
+   744,
+   100,
+   4,
+   0,
+   "101 min 25 s",
+   "4 failures (PST-009, PST-001, REG-496, REG-861), each ran 5 to 20 times slower than alone while another project's test suites held the CPU at 96-100 % and free memory near 0.2 GB; each passed 3 of 3 on a re-check that day. REG-861 may instead have been the intermittent tablet defect DEF-806 (same symptom). REG-886 skipped."
+  ],
+  [
+   "Performance (Run 11)",
+   "2026-11-02",
+   "8 performance budgets, alone, 1 worker",
+   8,
+   0,
+   0,
+   0,
+   "2 min 34 s",
+   ""
+  ],
+  [
+   "Cross-browser (Run 11)",
+   "2026-11-02",
+   "Smoke on Firefox and WebKit",
+   16,
+   0,
+   0,
+   0,
+   "1 min 5 s",
+   ""
+  ],
+  [
+   "Run 12",
+   "2026-11-04",
+   "FULL regression: chromium, phone, tablet, ipad, offline; 2 workers",
+   749,
+   102,
+   0,
+   0,
+   "59 min 14 s",
+   "No unexpected failure and nothing flaky. REG-886 skipped (needs a real iPad or macOS)."
+  ],
+  [
+   "Performance (Run 12)",
+   "2026-11-04",
+   "8 performance budgets, alone, 1 worker",
+   8,
+   0,
+   0,
+   0,
+   "1 min 36 s",
+   ""
+  ],
+  [
+   "Cross-browser (Run 12)",
+   "2026-11-04",
+   "Smoke on Firefox and WebKit",
+   16,
+   0,
+   0,
+   0,
+   "40 s",
+   ""
+  ],
+  [
+   "Live sharing 1",
+   "2026-11-04",
+   "Sharing on the real server between the QA teacher and two real student accounts: copies, classes, plan gates and live shares (REG-910 to REG-921, REG-930 to REG-939)",
+   19,
+   2,
+   1,
+   0,
+   "45 min 28 s",
+   "REG-914 and REG-916 reproduced DEF-507 and DEF-508. REG-939, marked with DEF-510, passed: with nothing changed, Push now sent once and nothing more. The defect needs a document added to the live project first; the test was changed to add one (Live sharing 1b)."
+  ],
+  [
+   "Live sharing 1b",
+   "2026-11-04",
+   "REG-939 after the change",
+   0,
+   1,
+   0,
+   0,
+   "3 min 32 s",
+   "Reproduced DEF-510: 10 pushes in 90 s with nothing changed."
+  ],
+  [
+   "Live MoBrowser 10",
+   "2026-11-04",
+   "REG-903 to REG-906 in the real MoBrowser, once the test repository codernik-dev/cc-test- and the QA folder were added to its test profile",
+   4,
+   0,
+   0,
+   0,
+   "51 s",
+   "The first real GitHub backup and folder backup through MoBrowser, each restored identical. Earlier attempts that day stopped on mistakes in the tests and the MoBrowser setup, each fixed."
+  ],
+  [
+   "Run 13 (first)",
+   "2026-11-09",
+   "FULL regression after the app review (REG-941 to REG-944 added): chromium, phone, tablet, ipad, offline; 2 workers",
+   752,
+   103,
+   0,
+   0,
+   "41 min 20 s",
+   "No unexpected failure and nothing flaky. REG-942 reproduced the new DEF-514. REG-886 skipped."
+  ],
+  [
+   "Performance (Run 13)",
+   "2026-11-09",
+   "8 performance budgets, alone, 1 worker",
+   8,
+   0,
+   0,
+   0,
+   "1 min 28 s",
+   ""
+  ],
+  [
+   "Cross-browser (Run 13)",
+   "2026-11-09",
+   "Smoke on Firefox and WebKit",
+   16,
+   0,
+   0,
+   0,
+   "35 s",
+   ""
+  ],
+  [
+   "Run 13 live",
+   "2026-11-09",
+   "The whole live suite, one test at a time: real sign-in, cloud backup, restore and sync, MoBrowser GitHub and folder backup, copy and live sharing between the teacher and two students",
+   19,
+   4,
+   6,
+   0,
+   "59 min 59 s",
+   "6 failures, each traced: REG-934, REG-935 and REG-938 gave up after 30 s waiting for the server's list of the teacher's live shares, which took 42 s for 45 (new server defect DEF-516); REG-919 and REG-937 shared to a class seconds after making it and the app counted 1 of its 2 students (new app defect DEF-515, reproduced by REG-945); REG-904 lost its PIN input in MoBrowser, and REG-905/906 did not run behind it. A re-run of those 8 that afternoon failed the same 6 the same way; it ran two tests at once by mistake and saved no JSON, so it is not counted."
+  ],
+  [
+   "Run 13 live re-check",
+   "2026-11-09",
+   "The fixed tests and the new REG-946, one at a time",
+   6,
+   1,
+   1,
+   0,
+   "22 min 40 s",
+   "REG-919 and REG-934 to REG-938 passed, with the class given time to show all its members and the server's list allowed 3 minutes. REG-946 reproduced DEF-516 (53 live shares listed in 49.1 s). REG-905 again lost a PIN tap in MoBrowser (REG-906 did not run behind it). An earlier attempt ran two tests at once on the shared accounts by mistake and is not counted."
+  ],
+  [
+   "Run 13 MoBrowser re-check",
+   "2026-11-09",
+   "REG-903 to REG-906 twice, one at a time, the PIN tapped after a first click on the screen and each digit checked",
+   8,
+   0,
+   0,
+   0,
+   "2 min 6 s",
+   "All passed and no digit needed a second tap; the real GitHub and folder backups restored identical, twice."
+  ],
+  [
+   "Run 13",
+   "2026-11-09",
+   "FULL regression on the final suite (REG-945 added): chromium, phone, tablet, ipad, offline; 2 workers",
+   752,
+   104,
+   0,
+   0,
+   "37 min 23 s",
+   "No unexpected failure and nothing flaky. REG-945 reproduced DEF-515 at its three checks (the class shows 1 person, \"Share live with 1\", the live share leaves the second student out). REG-886 skipped."
   ]
  ]
 }

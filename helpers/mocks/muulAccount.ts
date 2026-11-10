@@ -26,13 +26,13 @@
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import type { Page, Request } from '@playwright/test'
-import { baseURL } from '../../config/env.js'
+import { APP_DIR, baseURL } from '../../config/env.js'
 
 export const MUUL_API = 'https://api.muulorigin.com'
 export const MUUL_WWW = 'https://www.muulorigin.com'
 const APP_ORIGIN = new URL(baseURL).origin
 
-const FIXTURE_FILE = path.resolve(import.meta.dirname, '..', '..', '..', 'src', 'services', 'subscription', '__fixtures__', 'entitlements-cognitive-canvas.json')
+const FIXTURE_FILE = path.join(APP_DIR, 'src', 'services', 'subscription', '__fixtures__', 'entitlements-cognitive-canvas.json')
 const ENTITLEMENTS = JSON.parse(readFileSync(FIXTURE_FILE, 'utf8')) as Record<string, Record<string, unknown>>
 
 /** Scenario keys of the contract fixture: 'free', 'dev' (Economy), 'pro', 'enterprise', 'pro-paused', ... */

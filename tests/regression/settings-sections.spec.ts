@@ -9,7 +9,9 @@
 import { test, expect } from '../../fixtures/shell.js'
 import { FIND_PDF } from '../../data/files.js'
 import { FREE_PLAN_ROWS, SHORTCUT_GROUPS } from '../../data/shell-files.js'
+import { ACCENTS, STYLES } from '../../data/appearance.js'
 import { blockedTo } from '../../helpers/shell.js'
+import { guideCards, type GuideList } from '../../helpers/toolGuide.js'
 import { CognitiveCanvas } from '../../pages/CognitiveCanvas.js'
 
 const SIGNED_OUT_TABS = ['Appearance', 'Language', 'Plan', 'Permissions', 'Shortcuts', 'Tool Guide', 'Support', 'Tutorials']
@@ -133,6 +135,65 @@ test.describe('Appearance', { tag: ['@regression', '@settings'] }, () => {
     await app.settings.mode('Light').click()
     await expect.poll(() => other.settings.isDark()).toBe(false)
   })
+
+  test('REG-947 every accent colour shows its name and description, themes the app when picked and is remembered; the default one clears it', { tag: '@P3' }, async ({ app, shell, page }) => {
+    // The picked tile carries a check mark (the app has no other "selected" state on these tiles).
+    const picked = (name: string) => shell.sections.appearanceTile(name).locator('polyline[points="20 6 9 17 4 12"]')
+    const [byDefault, ...others] = ACCENTS
+    await expect(page.getByRole('heading', { name: 'Accent Color' })).toBeVisible()
+    for (const a of ACCENTS) await expect(shell.sections.appearanceTile(a.name), a.name).toContainText(a.description)
+    await expect(picked(byDefault.name)).toHaveCount(1)
+
+    for (const a of others) {
+      await shell.sections.appearanceTile(a.name).click()
+      await expect.poll(() => htmlClasses(page), { message: a.name }).toEqual([`color-theme-${a.id}`])
+      expect(await storage(page, 'cc-color-theme'), a.name).toBe(a.id)
+      await expect(picked(a.name), a.name).toHaveCount(1)
+      await expect(picked(byDefault.name)).toHaveCount(0)
+    }
+    const last = others[others.length - 1]
+    await app.reload()
+    await expect.poll(() => htmlClasses(page)).toEqual([`color-theme-${last.id}`])
+    await expect(picked(last.name)).toHaveCount(1)
+
+    await shell.sections.appearanceTile(byDefault.name).click()
+    await expect.poll(() => htmlClasses(page)).toEqual([])
+    await expect(picked(byDefault.name)).toHaveCount(1)
+  })
+
+  test('REG-948 every Style shows its name and description and puts on its own skin with its own accents; each accent sets the app\'s primary shades; the choice is remembered, and Default brings the plain accents back', { tag: '@P3' }, async ({ app, shell, page }) => {
+    const shades = () => page.evaluate(() => ['300', '400', '500', '600', '700'].map((s) => document.documentElement.style.getPropertyValue(`--color-primary-${s}`)))
+    const themeClasses = async () => (await htmlClasses(page)).filter((c) => c !== 'dark')
+    const picked = (name: string) => shell.sections.appearanceTile(name).locator('polyline[points="20 6 9 17 4 12"]')
+    for (const s of STYLES) await expect(shell.sections.appearanceTile(s.name), s.name).toContainText(s.description)
+
+    for (const s of STYLES.filter((x) => x.id !== 'default')) {
+      await shell.sections.appearanceTile(s.name).click()
+      await expect.poll(themeClasses, { message: s.name }).toEqual([`style-theme-${s.id}`])
+      expect(await storage(page, 'cc-style-theme'), s.name).toBe(s.id)
+      await expect(page.getByRole('heading', { name: `Accent — tuned for ${s.name}` })).toBeVisible()
+      // The global accents step aside for the Style's own. Until one is picked the first is marked and the
+      // Style's stylesheet supplies the colours (hooks/useTheme.ts: only an explicit pick is written inline).
+      await expect(shell.sections.appearanceTile(ACCENTS[1].name)).toBeHidden()
+      await expect(picked(s.accents[0].name), `${s.name}: its default accent is marked`).toHaveCount(1)
+      await expect.poll(shades, { message: `${s.name}: nothing written inline before a pick` }).toEqual(['', '', '', '', ''])
+      for (const a of s.accents) {
+        await expect(shell.sections.appearanceTile(a.name), `${s.name} › ${a.name}`).toContainText(a.description)
+        await shell.sections.appearanceTile(a.name).click()
+        await expect.poll(shades, { message: `${s.name} › ${a.name}` }).toEqual(a.shades)
+      }
+      expect(JSON.parse((await storage(page, 'cc-style-accents'))!)[s.id], s.name).toBe(s.accents[s.accents.length - 1].id)
+    }
+
+    const last = STYLES[STYLES.length - 1]
+    await app.reload()
+    await expect.poll(themeClasses).toEqual([`style-theme-${last.id}`])
+    await expect.poll(shades).toEqual(last.accents[last.accents.length - 1].shades)
+    await shell.sections.appearanceTile('Default').click()
+    await expect.poll(themeClasses).toEqual([])
+    await expect.poll(shades).toEqual(['', '', '', '', ''])
+    await expect(page.getByRole('heading', { name: 'Accent Color' })).toBeVisible()
+  })
 })
 
 test.describe('Permissions', { tag: ['@regression', '@settings'] }, () => {
@@ -248,6 +309,58 @@ test.describe('Shortcuts and Tool Guide', { tag: ['@regression', '@settings'] },
     await expect(page.getByRole('heading', { name: 'Document Tools', level: 3 })).toBeVisible()
     await page.getByRole('button', { name: 'Back', exact: true }).first().click() // the screen's Back, not the guide's
     await app.viewer.pageRendered(1) // the document is still open behind Settings
+  })
+
+  test('REG-949 every Tool Guide card says exactly what the app\'s guide holds: its name, description, every step in order, its tip and the "Desktop & tablet" mark', { tag: '@P3' }, async ({ signedIn: app, shell, page }) => {
+    await app.header.settings.click()
+    await app.settings.openTab('Tool Guide')
+    const categories: [string, GuideList][] = [['Document Tools', 'DOC_TOOLS'], ['Workspace Tools', 'WS_TOOLS'], ['Linking & Connections', 'LINKING_TOOLS']]
+    for (const [title, list] of categories) {
+      const expected = guideCards(list)
+      await shell.sections.guideCategory(title).click()
+      await expect(page.getByRole('heading', { name: title, level: 3 })).toBeVisible()
+      await expect(shell.sections.guideCards).toHaveCount(expected.length)
+      // Each card (ToolGuide.tsx ToolCard): a header with the name (and the mark) and the description, a numbered step list, then an optional "Tip:" box.
+      const shown = await shell.sections.guideCards.evaluateAll((cards) => cards.map((card) => {
+        const [nameLine, descLine] = Array.from(card.children[0].querySelectorAll('p'))
+        const tipBox = card.querySelector('ol + div')
+        return {
+          name: Array.from(nameLine.childNodes).filter((n) => n.nodeType === Node.TEXT_NODE).map((n) => n.textContent ?? '').join('').trim(),
+          desc: (descLine?.textContent ?? '').trim(),
+          steps: Array.from(card.querySelectorAll('ol > li')).map((li) => (li.children[1]?.textContent ?? '').trim()),
+          tip: tipBox ? (tipBox.children[1]?.textContent ?? '').trim() : undefined,
+          desktopOnly: nameLine.querySelector('span')?.textContent === 'Desktop & tablet',
+        }
+      }))
+      expect(shown, title).toEqual(expected)
+      await page.getByRole('button', { name: 'Back', exact: true }).last().click()
+      await expect(shell.sections.guideCategory(title)).toBeVisible()
+    }
+  })
+
+  test('REG-950 each Settings section explains itself: the layout switch and Styles, what every permission is for, and what the language setting changes and what stays in English', { tag: '@P3' }, async ({ signedIn: app, shell, page }) => {
+    await app.header.settings.click()
+    await app.settings.openTab('Appearance')
+    await expect(page.getByText('Switch between the standard experience and the law-focused layout.', { exact: true })).toBeVisible()
+    await expect(shell.sections.layoutTile('Cognitive Canvas')).toContainText('Reading & note-taking')
+    await expect(shell.sections.layoutTile('Cognitive Canvas Legal')).toContainText('Court diary & date reminders')
+    await expect(page.getByText('A complete look — typography, shape and colours. A Style overrides Mode & Accent; pick its accent below.', { exact: true })).toBeVisible()
+
+    await app.settings.openTab('Permissions')
+    const purposes: [string, string][] = [
+      ['Microphone', 'Required for recording audio notes.'],
+      ['Camera', 'Required for recording video notes.'],
+      ['Clipboard', 'Used for copy/paste operations with text content.'],
+      ['Persistent Storage', 'Prevents the browser from automatically clearing your project data when storage is low.'],
+    ]
+    for (const [name, purpose] of purposes) await expect(shell.sections.permission(name), name).toContainText(purpose)
+
+    await app.settings.openTab('Language')
+    for (const text of [
+      'The language of menus, buttons and messages. Your projects and notes are not changed.',
+      'With Device language selected, the app also offers to switch when you type in Hindi, Punjabi or Japanese.',
+      'Names of products and plans — Cognitive Canvas, MuulOrigin, Free, Economy, Pro — stay in English. Catalog content, shared items and messages from MuulOrigin appear as they were written.',
+    ]) await expect(page.getByText(text, { exact: true })).toBeVisible()
   })
 })
 

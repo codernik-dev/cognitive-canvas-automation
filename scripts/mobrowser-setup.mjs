@@ -7,7 +7,7 @@
  *
  * Opens MoBrowser on the test profile (never your own profile) so you can add,
  * in MoBrowser's credential manager:
- *   - the GitHub repository the tests may push to (default "cc"), and
+ *   - the GitHub repository the tests may push to (default codernik-dev/cc-test-), and
  *   - the QA backup folder (created here, empty).
  * Close MoBrowser when done; the tests reuse what you added.
  *
@@ -21,7 +21,7 @@ import path from 'node:path'
 const EXE = process.env.CC_MOBROWSER_EXE ?? 'C:\\Program Files\\mobrowser\\mobrowser.exe'
 const PROFILE = process.env.CC_MOBROWSER_PROFILE ?? path.join(process.env.LOCALAPPDATA ?? os.homedir(), 'cognitive-canvas-qa', 'mobrowser-profile')
 const FOLDER = process.env.CC_MOBROWSER_TEST_FOLDER ?? path.join(os.homedir(), 'Documents', 'CognitiveCanvas-QA-Backups')
-const REPO = process.env.CC_MOBROWSER_TEST_REPO ?? 'cc'
+const REPO = process.env.CC_MOBROWSER_TEST_REPO ?? 'codernik-dev/cc-test-'
 
 if (!existsSync(EXE)) {
   console.error(`MoBrowser not found at ${EXE}. Install it, or set CC_MOBROWSER_EXE.`)
@@ -45,13 +45,13 @@ MoBrowser is opening on the TEST profile:
 Your own MoBrowser profile is not used.
 
 In that MoBrowser window, open the credential manager and add:
-  1. GitHub: the repository "${REPO}" (owner/${REPO}), its branch, and a token
+  1. GitHub: the repository ${REPO}, its branch, and a token
      that may push to it. The tests push backup commits there and read them back.
   2. Local folder:
        ${FOLDER}
      (just created, empty). The tests write backups there and delete them after.
 
 Then close MoBrowser and run the live tests:
-  npm run test:live
+  npm run live
 `)
 spawn(EXE, ['-no-remote', '-profile', PROFILE, 'https://cognitivecanvas.muulorigin.com/'], { stdio: 'ignore', detached: true }).unref()

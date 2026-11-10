@@ -11,6 +11,7 @@
  */
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
+import { APP_DIR } from '../config/env.js'
 
 export interface SourceTourStep {
   title: string
@@ -23,7 +24,7 @@ export interface SourceTourStep {
   phoneMode?: 'doc' | 'split' | 'canvas'
 }
 
-const FILE = path.resolve(import.meta.dirname, '..', '..', 'src', 'components', 'tours', 'tourSteps.ts')
+const FILE = path.join(APP_DIR, 'src', 'components', 'tours', 'tourSteps.ts')
 
 const EXPORTS: Record<string, string> = {
   project: 'projectTourSteps',

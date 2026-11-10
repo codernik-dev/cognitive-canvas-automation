@@ -14,7 +14,8 @@
  */
 import { test, expect } from '../../fixtures/backup.js'
 import { entitlementsFor, fakeJwt, MUUL_API, MUUL_WWW, type MuulApiMock, type PlanScenario } from '../../helpers/mocks/muulAccount.js'
-import { readStore } from '../../helpers/idb.js'
+import { readStore, expectStoreCount } from '../../helpers/idb.js'
+import { FIND_PDF } from '../../data/files.js'
 import { bootToHome, createProjects } from '../../workflows/backup.js'
 import type { CognitiveCanvas } from '../../pages/CognitiveCanvas.js'
 import type { BackupUi } from '../../pages/BackupScreens.js'
@@ -457,5 +458,30 @@ test.describe('Sign out', { tag: ['@regression', '@backup', '@plans', '@api'] },
     expect(await readStore(page, 'projects')).toEqual(projectsBefore)
     await openSource(app, 'Backup', 'Cloud')
     await expect(app.dataCenter.gateButton('Sign in')).toBeVisible()
+  })
+})
+
+test.describe('Local storage allowance', { tag: ['@regression', '@backup', '@plans', '@api'] }, () => {
+  test.use({ muulPlan: 'free' })
+  test('REG-959 an upload that would go over the plan\'s storage allowance is refused with a message to free space, and nothing is stored', { tag: '@P2' }, async ({ signedIn: app, muul, page }) => {
+    // The plan says how much this device may hold (caps.localQuotaBytes, 10 GB on Free). Served as 1 KB here,
+    // smaller than any document, so the very next upload goes over it. (A real allowance is whole gigabytes.)
+    const tiny = entitlementsFor('free') as { caps: { localQuotaBytes: number } }
+    tiny.caps.localQuotaBytes = 1024
+    await muul.on('GET', '/api/entitlements', () => ({ json: tiny }))
+    const answered = page.waitForResponse((r) => r.url().startsWith(`${MUUL_API}/api/entitlements`))
+    await page.evaluate(() => window.dispatchEvent(new Event('cc2:plan-recheck')))
+    await answered
+    // The app keeps the plan's caps per account, under cc2_subscription_caps:<account>.
+    const storedAllowance = () => page.evaluate(() => {
+      const key = Object.keys(localStorage).find((k) => k.startsWith('cc2_subscription_caps:'))
+      return key ? (JSON.parse(localStorage.getItem(key) ?? '{}') as { localQuotaBytes?: number }).localQuotaBytes : undefined
+    })
+    await expect.poll(storedAllowance, { message: 'the app took the new allowance' }).toBe(1024)
+
+    await app.home.createProject('Over Allowance')
+    await app.documents.uploadFiles(FIND_PDF.payload())
+    await app.toasts.expectShown(/^You've reached your \d+ GB storage limit\. Delete items to free space\.$/)
+    await expectStoreCount(page, 'documents', 0)
   })
 })

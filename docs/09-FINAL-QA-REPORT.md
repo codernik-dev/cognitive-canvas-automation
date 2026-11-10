@@ -2,49 +2,48 @@
 
 **App under test:** Cognitive Canvas, commit `c54e7e2` (branch `AbhishekBugs`), production build served from `dist/` (stamped `c54e7e2-dirty`; the "-dirty" is line endings only, OBS-004). No application file was changed by this work.
 **Environment:** Windows 11 laptop, Node 24.13, Playwright 1.64.1 (Chromium 1248, Firefox 1555, WebKit 2370), 8 logical CPUs, MoBrowser (Firefox 152 based) for the live MoBrowser tests. The machine was shared with other work, including another project's Playwright suites: the CPU was at 100 % for most of Runs 9 and 10.
-**Dates:** 2026-10-29 to 31.
+**Dates:** 2026-10-29 to 2026-11-09. The latest round (Runs 11 to 13) ran on 2026-11-02, 11-04 and 11-09.
 
-Every number below comes from a recorded run (`results.json` under `automation/reports/<run>/`). Nothing is estimated. The workbook `Cognitive-Canvas-Test-Suites.xlsx` holds the same data case by case.
+Every number below comes from a recorded run (`results.json` under `reports/<run>/`). Nothing is estimated. The workbook `Cognitive-Canvas-Test-Suites.xlsx` holds the same data case by case.
 
 ## 1. Headline
 
-- **871 test cases in 35 modules, 864 automated (99.2 %).** Every user-facing feature found in the source has at least one case. The 7 not automated need a real iPad, Apple Pencil, Android build, operating-system prompt or screen reader (6, manual), or a gesture event Playwright's WebKit on Windows cannot create (1, blocked). Each of those names the emulated tests that cover everything around it.
-- **A review of every complex-tool and backup test (2026-10-31 morning) made 35 tests prove more:** what was stored, exactly where it was placed, and what is on screen. It also added a page-in-view check to every page-number check, and found a new app defect, **DEF-213** (§3).
-- **Final full run on the reviewed suite (Run 10): 849 executions on desktop Chrome, phone, tablet, iPad (WebKit) and an offline profile, in 60 minutes: 742 passed, 100 known defects reproduced, 6 failed, 1 parked.** Every failure was traced:
-  - 5 GitHub tests hung together for 3 minutes under heavy machine load, then passed 15 of 15 on re-check;
-  - 1 tablet test hit the intermittent app defect DEF-806.
-
-  The run before the review (Run 9) had 749 passed, 99 known defects and 0 failures. No retries are allowed, so nothing passed by being tried again.
-- **Live suite against the real servers (Live 4): 6 / 6 passed.** A real MuulOrigin sign-in, a real Muul Cloud backup and restore, a real sign-out, cloud auto-sync between two browsers, and the real MoBrowser host and its GitHub and folder pickers. Two GitHub and folder round trips wait for a one-time setup in the MoBrowser test profile (§3).
-- **Performance: 8 / 8 within budget** (Performance 3, run alone). **Cross-browser smoke: 16 / 16** on Firefox and WebKit.
-- **77 application defects found and written up** in plain language with steps (08): **6 P1, 25 P2, 46 P3**. Of these, 73 are reproduced on every run by a test that checks the correct behaviour, and 4 are intermittent. The six P1s:
-  - **DEF-902** a backup loses the text OCR read from scanned pages;
-  - **DEF-916** offline, opening a screen not used yet reloads the app into a blank page;
-  - **DEF-505** a document the teacher stopped sharing in a live share is sent to students again;
-  - **DEF-906** projects and documents cannot be opened with the keyboard;
+- **916 test cases in 35 modules, 909 automated (99.2 %).** Every user-facing feature found in the source has at least one case. The 7 not automated need a real iPad, Apple Pencil, Android build, operating-system prompt or screen reader (6, manual), or a gesture event Playwright's WebKit on Windows cannot create (1, blocked).
+- **The whole app was checked again on 2026-11-09 for screens no test reached.** Every one a user can reach is now tested: the crash screen (REG-943, REG-944) and the "Receiving audio…" state of a recording in a live share (REG-941, REG-942). A class shared live straight after it is made (REG-945) and the speed of the server's list of live shares (REG-946) were added after the live run found them. Code that no screen can reach is listed by name in 08.
+- **Final full run (Run 13, 2026-11-09): 857 tests on desktop Chrome, phone, tablet, iPad (WebKit) and an offline profile, in 37 minutes: 752 passed, 104 known defects reproduced, 0 failed, 0 flaky, 1 parked (REG-886).** The first full run that day (856 tests, before REG-945) also had no unexpected failure, and so did Run 12 on 2026-11-04. No retries are allowed, so nothing passed by being tried again.
+- **Live suite against the real servers: 32 cases, every one run on 2026-11-09.** Real sign-in, Muul Cloud backup, restore and sync, the real MoBrowser host with a real GitHub backup into `codernik-dev/cc-test-` and a folder backup, and copies and live shares between the QA teacher and two real student accounts, compared field by field. Latest results: 27 passed, 5 known defects reproduced. Run 13 live had 6 failures, each traced (§3): 2 were the new app defect DEF-515, 3 were tests waiting less than the server now takes (new server defect DEF-516), and 1 was PIN input lost in MoBrowser. All passed after the fixes.
+- **Performance: 8 / 8 within budget** (alone, one worker, quiet machine). **Cross-browser smoke: 16 / 16** on Firefox and WebKit.
+- **86 application defects found and written up** in plain language with steps (08, and for testers 10): **7 P1, 22 P2, 57 P3**. 81 are reproduced on every run by a test that checks the correct behaviour; 5 are intermittent. The seven P1s:
+  - **DEF-001** Find does not take you to a match on a page not viewed yet;
   - **DEF-007** the app cannot open without internet (the offline helper never installs);
-  - **DEF-001** Find does not take you to a match on a page not viewed yet.
+  - **DEF-207** text on a PDF page cannot be selected or copied;
+  - **DEF-505** a document the teacher stopped sharing in a live share is sent to students again;
+  - **DEF-510** after a new document and Push now, the teacher's app keeps sending the live share every few seconds;
+  - **DEF-804** pinch zoom on a PDF does nothing on phones, tablets and iPad;
+  - **DEF-916** offline, opening a screen not used yet reloads the app into a blank page.
+- **New on 2026-11-09:** DEF-514 (P3, the teacher's recordings never show "Uploading"), DEF-515 (P2, a class shared live straight after it is made can leave students out) and DEF-516 (P2, server side: the teacher's list of live shares takes over 40 seconds, and longer with every live share made).
+- **Written on 2026-11-10, not yet run:** a text-by-text check of every reachable screen against the tests added REG-947 to REG-959: every accent and Style in Appearance, every Tool Guide card word for word, the Settings explanations, Cloud sync with no projects and a project that never reached the cloud, deleting a live-shared project (alone, in bulk, and with the server unreachable), a teacher's read-only note and its "Duplicate to edit", uploads from Home that are all refused, the Storage filters, the delete wording for video notes, and the plan's storage allowance on upload. They are typechecked and in the inventory; their first run is the next full run.
 - **Traceability:** every automated case is carried by a test with its ID, checked by `npm run inventory -- --check` (0 drift).
 
 ## 2. Inventory and coverage
 
 | Measure | Value | Definition |
 |---|---|---|
-| Test cases | **871** (Smoke 8, Sanity 11, Regression 852) | `data/test-inventory.csv` |
-| Modules | 35 | Product areas; each has its own spec file(s) under `tests/regression/` (103 spec files in all) |
-| Automated | **864** (765 plain + 99 known-defect) | A test carries the ID and asserts the expected result |
+| Test cases | **916** (Smoke 8, Sanity 11, Regression 897) | `data/test-inventory.csv` |
+| Modules | 35 | Product areas; each has its own spec file(s) under `tests/` |
+| Automated | **909** (800 plain + 109 known-defect) | A test carries the ID and asserts the expected result |
 | Manual | 6 | SAN-004/005/006/008/009 (real iPad, Pencil, Android build, OS prompts, install) and A11Y-007 (screen reader) |
 | Blocked | 1 | REG-886 (Safari gesture event; needs macOS or a real iPad) |
-| **Scenario automation coverage** | **99.2 %** (864 / 871) | Automated ÷ all cases |
-| P1 cases automated | **182 / 184** | The two not automated are SAN-004 and SAN-005 (real iPad and Pencil) |
+| **Scenario automation coverage** | **99.2 %** (909 / 916) | Automated ÷ all cases |
+| P1 cases automated | **201 / 203** | The two not automated are SAN-004 and SAN-005 (real iPad and Pencil) |
 
 | Sub-suite | Cases | Automated | Script folder |
 |---|---:|---:|---|
 | Smoke | 8 | 8 | `tests/smoke` |
 | Sanity | 11 | 6 | `tests/sanity` (plus 78 regression cases tagged `@sanity`: the Sanity run executes 84) |
-| Functional (module-wise) | 655 | 655 | `tests/regression` |
+| Functional (module-wise) | 676 | 676 | `tests/regression` |
 | Responsive (phone / tablet / iPad) | 87 | 86 | `tests/responsive` |
-| Live (real servers, real MoBrowser) | 8 | 8 | `tests/live` (opt-in, QA account) |
+| Live (real servers, real MoBrowser, real student accounts) | 32 | 32 | `tests/live` (opt-in, QA accounts) |
 | API contracts | 5 | 5 | `tests/api` |
 | Persistence and migration | 26 | 26 | `tests/persistence` |
 | Offline and PWA | 13 | 13 | `tests/offline` |
@@ -63,7 +62,33 @@ Coverage by module, type and priority: 05-COVERAGE-MATRIX.md and the workbook's 
 
 ## 3. Execution evidence
 
-### This round
+### Latest round (2026-11-02 to 11-09)
+
+| Run | Scope | Passed | Known defect reproduced | Failed | Wall clock |
+|---|---|---:|---:|---:|---|
+| Run 11 | full regression in the standalone repository; another project's suites held the CPU at 96-100 % | 744 | 100 | 4 | 101 min 25 s |
+| Run 12 | full regression | 749 | 102 | 0 | 59 min 14 s |
+| Live sharing 1 | copies, classes and live shares on the real server, teacher and two students | 19 | 2 | 1 | 45 min 28 s |
+| Live MoBrowser 10 | REG-903 to REG-906: the first real GitHub and folder backups through MoBrowser | 4 | 0 | 0 | 51 s |
+| Run 13 (first) | full regression after the app review (REG-941 to REG-944 added) | 752 | 103 | 0 | 41 min 20 s |
+| Performance (Run 13) | 8 budgets, alone, 1 worker | **8** | — | 0 | 1 min 28 s |
+| Cross-browser (Run 13) | smoke on Firefox + WebKit | **16** | 0 | 0 | 35 s |
+| Run 13 live | the whole live suite, one test at a time | 19 | 4 | 6 | 59 min 59 s |
+| Run 13 live re-check | the fixed tests and the new REG-946, one at a time | 6 | 1 | 1 | 22 min 40 s |
+| Run 13 MoBrowser re-check | REG-903 to REG-906, twice | 8 | 0 | 0 | 2 min 6 s |
+| **Run 13** | **full regression on the final suite** (REG-945 added): chromium, phone, tablet, ipad, offline; 2 workers | **752** | **104** | **0** | 37 min 23 s |
+
+Every full run had 1 parked test (REG-886, reported as skipped). Run 11's 4 failures each passed 3 of 3 on a re-check that day: they ran 5 to 20 times slower than alone under the other project's load. Two re-runs of the live failures on 2026-11-09 ran two tests at once on the shared accounts by mistake; they are not counted.
+
+### What Run 13 settled
+
+| Test | Cause | Whose problem | After the fix |
+|---|---|---|---|
+| REG-919, REG-937 (share to a class of two) | The class was made and shared at once. The app's refresh after saving the class took the answer of a check that left before the save finished; the real server answered that one with the class holding its first member only. The app then said "Send a copy to 1" / "Share live with 1", and a live share went to the first student only. Seen on every try. | **App defect DEF-515** (new, P2) | REG-945 reproduces it every time against the fake server; REG-919 and REG-937 now share once the class shows both students, and pass |
+| REG-934, REG-935, REG-938 (live share stopped, left, joined) | Each waited 30 s for the server's list of the teacher's live shares, which took 42 s: about 0.9 s per live share the account has ever made (45, all stopped; the server keeps them and has no call to delete them). Accounts with none: 1.1-1.5 s. | **Server defect DEF-516** (new, P2) | the tests allow 3 minutes and pass; REG-946 measures the list (53 live shares, 49.1 s) and fails until it answers within 10 s |
+| REG-904 (MoBrowser pickers) | The PIN typed into the test MoBrowser lost keys typed straight after the screen appeared; later, one tap was lost too. The window never has the system's focus. Same steps passed on 2026-11-04. | Test input in MoBrowser | the driver clicks the screen first, taps each digit and checks it landed (a second tap is recorded on the test); REG-903 to REG-906 passed 8 of 8, no second tap needed |
+
+### Round of 2026-10-29 to 31
 
 | Run | Scope | Passed | Known defect reproduced | Failed | Wall clock |
 |---|---|---:|---:|---:|---|
@@ -125,56 +150,48 @@ Run 8 had six failures, each traced to its root cause:
 
 In Run 9 every one of those fixes held. REG-395 again reproduced DEF-312, and REG-862 passed this time. DEF-806 is intermittent, so REG-862 can still fail now and then until the app is fixed.
 
-### Live suite: the real servers and the real MoBrowser
+### Live suite: the real servers, the real MoBrowser and real student accounts
 
-| Case | What it proved | Live 4 |
+| Cases | What they prove | Latest (2026-11-09) |
 |---|---|---|
-| REG-900 | A real MuulOrigin sign-in reaches the app: the account is shown, the plan reads Pro, Cloud backup opens unlocked | Passed |
-| REG-901 | A project backed up to the real Muul Cloud is listed, restores identical (every store compared) after deletion, and its backup is then deleted; the account's other backups are unchanged | Passed |
-| REG-902 | Signing out ends the real session (refresh answers 401) and keeps the local projects | Passed |
-| REG-907 | A project made in one browser syncs to the real cloud, appears in a second signed-in browser with identical document bytes, and leaves the cloud when deleted | Passed |
-| REG-903 | In the real MoBrowser the app finds the host bridge, and the GitHub host reports the streamed push the app relies on | Passed |
-| REG-904 | GitHub and folder backup offer exactly what MoBrowser's credential manager holds, or say how to add it | Passed |
-| REG-905 | A real GitHub backup into the test repository through MoBrowser restores the deleted project identical | Skipped: setup pending |
-| REG-906 | A real folder backup through MoBrowser restores the deleted project identical, and the folder is left as it was | Skipped: setup pending |
+| REG-900 to REG-902, REG-907, REG-940 | Real MuulOrigin sign-in; a project backed up to the real Muul Cloud restores identical after deletion; sign-out ends the session and keeps local projects; cloud sync between two browsers | 4 passed; REG-940 reproduces DEF-511 |
+| REG-903 to REG-906 | In the real MoBrowser: the host bridge, the GitHub and folder pickers, a real GitHub backup into `codernik-dev/cc-test-` and a real folder backup, each restored identical | 4 passed (8 of 8 on re-check) |
+| REG-910 to REG-921 | Copies from the Pro teacher to real Free students: one or two students, a class, every kind of content, only the ticked documents, OCR words searchable on the student's device, deleted copies stay deleted, a Free student is offered no Share | 10 passed; REG-914 and REG-916 reproduce DEF-507 and DEF-508 |
+| REG-930 to REG-939, REG-946 | Live shares: going live, notes and highlights reaching the student, every kind of content, new documents, stopping, the student leaving and coming back, a class of two, a late joiner, Push now | 9 passed; REG-939 reproduces DEF-510, REG-946 reproduces DEF-516 |
 
 How it is kept safe:
 - The live tests run this build at the app's real address inside the test browser.
-- They sign in out of process, so the password never reaches a trace or a report.
-- They tag everything they create and delete it afterwards, whatever the outcome.
-- MoBrowser runs on a separate test profile, never the user's own.
+- They sign in out of process, so no password reaches a trace or a report.
+- They tag everything they create and delete it afterwards, whatever the outcome; the server keeps stopped live shares, which it offers no way to delete (DEF-516).
+- MoBrowser runs on a separate test profile, never the user's own, and pushes only to `codernik-dev/cc-test-`.
+- They run one test at a time (`npm run live`): the tests share the accounts.
 
-**To enable REG-905/906 (once):**
-1. Run `npm run mobrowser:setup`.
-2. In MoBrowser's credential manager, add the GitHub repository `cc` and the folder `Documents\CognitiveCanvas-QA-Backups`.
-3. Close MoBrowser.
-
-### Performance (Performance 3, alone, one worker)
+### Performance (Run 13, alone, one worker)
 
 | Measurement | Result | Budget |
 |---|---|---|
-| Cold start to PIN screen | 517 ms | 5 s |
-| 40-page PDF open | 946 ms | 10 s |
-| Find across 40 pages | 353 ms | 10 s |
-| 200-page PDF: upload to page 1 drawn / all pages indexed | 1.2-1.5 s / 1.7-2.1 s | see PRF-004 |
-| Reload to a 200-page document with 500 notes on screen | 3.9 s | see PRF-004 |
-| 500 notes: input to canvas moving (median / slowest of 15) | 34 ms / 356 ms | see PRF-006 |
-| Jump to page 150 drawn | 1.2 s | |
-| Local backup / restore of the large project | 1.7 s / 2.2 s (ZIP 575 KB) | see PRF-004, PRF-008 |
-| Home with 100 projects / search them | 562 ms / 69 ms | see PRF-005 |
-| Find a word on all 200 pages | 1.5 s | see PRF-007 |
+| Cold start to PIN screen | 270 ms | 5 s |
+| 40-page PDF open to page 1 drawn | 530 ms | 10 s |
+| Find a word across 40 pages | 269 ms | 10 s |
+| 200-page PDF: upload to page 1 drawn / all pages indexed | 600 ms / 1.2 s | 30 s / 90 s |
+| Reload to a 200-page document with 500 notes on screen | 1.3 s | 20 s |
+| 500 notes: input to canvas moving (median / slowest of 15) | 16 ms / 112 ms | 1 s |
+| Jump to page 150 drawn | 853 ms | 5 s |
+| Local backup / restore of the large project | 1.8 s / 1.7 s | 60 s / 90 s |
+| Home with 100 projects / search them | 362 ms / 51 ms | 15 s / 3 s |
+| Find a word on each of 200 pages | 852 ms | 45 s |
 
-These are still Performance 3's numbers. The machine was never quiet overnight, so a fresh measurement would have measured the other project's load, not the app.
+Measured on 2026-11-09, with no other test run on the machine. Performance 3 (2026-10-30) ran with the CPU at about 30 % from other work, and its numbers were slower.
 
 ### Static checks
 
 | Check | Result |
 |---|---|
-| `npm run typecheck:automation` | 0 errors |
-| `npx eslint automation --max-warnings 0` | 0 errors, 0 warnings |
-| `npm run inventory -- --check` | 871 cases, 864 automated, 0 drift (reads Playwright's own test list, so data-driven tests count) |
+| `npm run typecheck` | 0 errors |
+| Lint | not set up in this repository: the suite moved out of the app repository, whose eslint run covered it |
+| `npm run inventory -- --check` | 916 cases, 909 automated, 0 drift (reads Playwright's own test list, so data-driven tests count) |
 | Page-error guard, network guard | unchanged; the MoBrowser driver now fails a test when the build could not be served to MoBrowser, instead of ignoring it |
-| Banned patterns (sleeps, forced clicks, swallowed errors, `.only`) | none; 5 page-error allow-lists, each naming one exact, explained error |
+| Banned patterns (sleeps, forced clicks, swallowed errors, `.only`) | No forced clicks, swallowed errors or `.only`. No sleep stands in for a wait. Four fixed pauses exist, all in live tests, each a deliberate observation window: REG-939 watches 2 × 45 s for pushes that must not happen, REG-935 gives the student's app 30 s to (wrongly) pull a note, and REG-916 samples the bell every 5 s for 45 s. 7 page-error allow-lists, each naming one exact, explained error |
 | CI workflow YAML | parses; jobs `automation-gate`, `automation-regression` (4 shards), `automation-performance`, `automation-cross-browser`. **Not yet run on GitHub.** The live suite is not in CI (it needs the QA account). |
 | Unit suite | not re-run this round (no application change); last run 706/706 |
 
@@ -188,33 +205,33 @@ Full write-ups are in **08-DEFECTS-AND-LIMITATIONS.md** and in the workbook's "D
 
 | Priority | Defects | Areas with the most |
 |---|---:|---|
-| P1 | 6 | Backup, offline, live share, accessibility, PDF viewer |
-| P2 | 25 | Accessibility (contrast, labels), offline, canvas, sharing, PDF viewer, touch devices |
-| P3 | 46 | Assistant, canvas and note editor, accessibility, phone, catalog |
+| P1 | 7 | PDF viewer and Find, offline, live share, touch devices |
+| P2 | 22 | Backup and restore, accessibility, canvas, text documents, PDF viewer, live share |
+| P3 | 57 | Accessibility, canvas, backup and restore, sharing, assistant, touch devices |
 
 Remaining risks the suite cannot close (see 08, "Automation limitations"):
 - Real iPad, Pencil and Android behaviour: emulated only.
 - The screen-reader listening experience.
-- The real servers for sharing, support and the content catalog: proven against stateful fakes only. The backup paths (sign-in, Muul Cloud, sync, MoBrowser) are now also proven against the real servers.
+- The real servers for support and the content catalog: proven against stateful fakes only. Sign-in, Muul Cloud, sync, MoBrowser (GitHub and folder) and sharing (copies and live shares between real accounts) are also proven against the real servers.
+- The live suite's teacher account gets slower with every run while DEF-516 stands (about 10 more stopped live shares per full live run).
 
 ## 5. Recommendations
 
-1. **Fix the six P1 defects first.** Do DEF-902 (backups losing OCR text) and DEF-916 (offline blank page) before the next release, because both lose user work.
-2. **Fix DEF-806** (tablet page sometimes left blank). It affects users, and it is the one defect that can still make a correct test fail now and then (REG-862, REG-866). DEF-213 and DEF-208 (the reading position is lost) look like one cause and could be fixed together.
-3. **Finish the MoBrowser setup once** (§3) so the real GitHub and folder round trips run too.
-4. **Run the CI jobs once on GitHub** and check the time budgets. Locally, the full regression took 81 minutes on 2 workers on a fully loaded machine; CI splits it four ways.
-5. Run long suites with the machine plugged in and kept awake, or in CI. Never run them alongside another browser-test suite.
+1. **Fix the seven P1 defects first**, starting with those a user meets on day one: DEF-207 (text cannot be selected), DEF-001 (Find does not go to the match) and DEF-804 (no pinch zoom on touch devices); then the offline pair DEF-007 and DEF-916, and the live-share pair DEF-505 and DEF-510.
+2. **Fix DEF-515 before teachers use classes**: a class shared live straight after it is made can leave students out without anyone noticing. Separately, the server should answer the list of live shares quickly whatever their number, and let stopped ones be deleted (DEF-516).
+3. **Fix DEF-806** (tablet page sometimes left blank). It affects users, and it can make a correct test fail now and then.
+4. **Run the CI jobs once on GitHub** and check the time budgets. Locally the full regression took 37 minutes on 2 workers on a quiet machine; CI splits it four ways.
+5. Run long suites with the machine plugged in and kept awake, or in CI. Never run them alongside another browser-test suite, and run the live suite only through `npm run live` (one test at a time).
 6. Each release, do a short manual pass on a real iPad with Pencil and on the Muul-Android build (SAN-004/005/006), plus a screen-reader walkthrough (A11Y-007).
-7. Re-measure performance on a quiet machine or a CI runner: `npm run test:performance`.
-8. Remove or wire up the unreachable code listed in 08.
+7. Remove or wire up the unreachable code listed in 08.
 
 ## 6. Engineering review
 
 | Question | Answer |
 |---|---|
 | **Completeness** | Every module's source was inventoried for screens, controls, messages, limits and persistence. Each item maps to a case, or is listed in 08 with the concrete reason it cannot be automated. |
-| **Maintainability** | Module-wise specs; one page object per screen; per-area fixtures on one base; a stateful fake per external service; data generated in memory (only one binary file). A new case is one CSV row plus one test. First-time setup for a new team member: `automation/SETUP.md`. |
-| **Reliability** | Fresh browser context per test, no sleeps, state-based waits, no retries. Run 9 had no unexpected failure on a machine at 100 % CPU. In Runs 8 and 10, every failure was traced to its root cause. Remaining instability comes from the app (DEF-806), from a sleeping laptop, and from bursts of heavy load from other suites on the same machine (Run 10's GitHub window), not from the test logic. |
+| **Maintainability** | Module-wise specs; one page object per screen; per-area fixtures on one base; a stateful fake per external service; data generated in memory (only one binary file). A new case is one CSV row plus one test. First-time setup for a new team member: `SETUP.md`. |
+| **Reliability** | Fresh browser context per test, no sleeps, state-based waits, no retries. Runs 9, 12 and 13 had no unexpected failure. In Runs 8, 10, 11 and the Run 13 live run, every failure was traced to its root cause. Remaining instability comes from the app (DEF-806), from a sleeping laptop, and from bursts of heavy load from other suites on the same machine (Run 10's GitHub window), not from the test logic. |
 | **Traceability** | CSV ↔ test IDs enforced in CI; each defect links to the tests that reproduce it, and the Excel and 08 are generated from the same register. |
 | **Safety** | Refuses non-local base URLs, blocks every external request, mocks every server, uses throwaway profiles and a reserved-domain test identity, never the real camera. The opt-in live suite uses a dedicated QA account from the environment only, never writes its password anywhere, cleans up everything it creates, and runs MoBrowser on a separate test profile. |
 | **Diagnostics** | Trace, screenshot, video and page snapshot on failure; blocked-request and axe attachments; a Markdown summary per run with the build under test. |

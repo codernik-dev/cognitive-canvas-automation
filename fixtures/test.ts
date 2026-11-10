@@ -75,12 +75,24 @@ export const test = base.extend<Options & Fixtures>({
 
   page: async ({ page, allowedPageErrors }, provide, testInfo) => {
     const errors: string[] = []
+    const stacks: string[] = []
+    const consoleTail: string[] = []
+    const at = () => new Date().toISOString().slice(11, 23)
     page.on('pageerror', (e) => {
       const msg = `${e.name}: ${e.message}`
-      if (!allowedPageErrors.some((re) => re.test(msg))) errors.push(msg)
+      consoleTail.push(`${at()} [UNCAUGHT] ${msg}`)
+      if (!allowedPageErrors.some((re) => re.test(msg))) { errors.push(msg); stacks.push(`${at()} ${e.stack ?? msg}`) }
+    })
+    page.on('console', (m) => {
+      consoleTail.push(`${at()} [${m.type()}] ${m.text().slice(0, 400)}`)
+      if (consoleTail.length > 200) consoleTail.shift()
     })
     await provide(page)
-    if (errors.length) await testInfo.attach('page-errors.txt', { body: errors.join('\n\n'), contentType: 'text/plain' })
+    // Each error's stack says where in the app it was thrown; the app's console around it says what it was doing.
+    if (errors.length) {
+      await testInfo.attach('page-errors.txt', { body: stacks.join('\n\n'), contentType: 'text/plain' })
+      await testInfo.attach('console-before-errors.txt', { body: consoleTail.join('\n'), contentType: 'text/plain' })
+    }
     // Skip the check when the test already failed: the first failure is the useful one.
     if (testInfo.status === testInfo.expectedStatus) {
       expect(errors, 'uncaught exceptions in the page (allow-list them with allowedPageErrors if intended)').toEqual([])

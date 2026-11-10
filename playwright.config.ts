@@ -1,11 +1,11 @@
 /**
- * Cognitive Canvas automation suite (automation/README.md).
+ * Cognitive Canvas automation suite (README.md).
  *
- * Runs against the production build served by scripts/serve-dist.mjs, the
- * same server the legacy e2e/ suite uses. Build first:
+ * Runs against the production build in app/dist (npm run sync-app), served by
+ * scripts/serve-dist.mjs, the same server the legacy e2e/ suite uses:
  *
- *   npm run build
- *   npm run test:smoke | test:sanity | test:regression | test:automation
+ *   npm run sync-app -- <app folder>
+ *   npm run smoke | sanity | regression | all
  *
  * Isolation: every test gets a fresh browser context, so its own IndexedDB,
  * localStorage and sessionStorage. Nothing is shared between tests, which is
@@ -13,7 +13,7 @@
  */
 import path from 'node:path'
 import { defineConfig, devices } from '@playwright/test'
-import { ENV, baseURL, assertSafeBaseUrl, reportsFolder } from './config/env.js'
+import { ENV, DIST_DIR, baseURL, assertSafeBaseUrl, reportsFolder } from './config/env.js'
 
 assertSafeBaseUrl(baseURL)
 
@@ -75,8 +75,7 @@ export default defineConfig({
   webServer: ENV.baseUrlOverride
     ? undefined
     : {
-        command: `node scripts/serve-dist.mjs ${ENV.port}`,
-        cwd: '..',
+        command: `node scripts/serve-dist.mjs ${ENV.port} "${DIST_DIR}"`,
         url: `${baseURL}/`,
         reuseExistingServer: !ENV.ci,
         timeout: 60_000,
@@ -121,12 +120,15 @@ export default defineConfig({
     // LIVE: the build under test against the real MuulOrigin servers with the QA
     // account (fixtures/live.ts). Opt-in only (npm run test:live), never in the
     // regression run. Traces off: a trace records request bodies, and these hold
-    // a real session. Screenshots and video still show what went wrong.
+    // a real session. Screenshots and video still show what went wrong. The fake
+    // camera/mic: the live sharing tests record a video note.
     {
       name: 'live',
       testMatch: /tests[\\/]live[\\/].*\.live\.spec\.ts$/,
-      timeout: 300_000,
-      use: { ...desktop, trace: 'off' },
+      // 8 minutes: the real server's list of the teacher's live shares takes about 42 s (DEF-516, and it grows
+      // with every live share made), and each sharing test reads it at least twice, in its set-up and clean-up.
+      timeout: 480_000,
+      use: { ...desktop, ...fakeMedia, trace: 'off' },
     },
     // Cross-browser: the smoke suite only, on the scheduled run (07-EXECUTION-GUIDE.md).
     {

@@ -14,6 +14,12 @@ import { buildShareSnapshot, type SnapshotDoc } from '../../data/builders/shareS
 import { sha256, type SharingBackend } from '../../helpers/mocks/sharingBackend.js'
 import { SharingScreen, ShareComposerDialog, NewGroupDialog } from '../../pages/SharingScreen.js'
 import { documentDigests, localJson, projectRows, projectWithDocs, readSnapshot } from '../../helpers/sharingFlows.js'
+import { snapshotDb, RESTORED_STORES } from '../../helpers/backupState.js'
+import { expectSameAsSent, receivedCopy } from '../../helpers/shareFidelity.js'
+import { addEveryKindOfContent, settle } from '../../workflows/richContent.js'
+import { knownDefect } from '../../helpers/defects.js'
+import { readStore } from '../../helpers/idb.js'
+import type { CognitiveCanvas } from '../../pages/CognitiveCanvas.js'
 
 test.describe('Received shares', { tag: ['@regression', '@sharing', '@api'] }, () => {
   test('REG-100 a project shared to a class as a copy reaches the student\'s second account and lands in their projects intact', { tag: ['@P1', '@sanity'] }, async ({ signedIn: app, page, sharing, secondUser }) => {
@@ -224,4 +230,54 @@ function seedPack(sharing: SharingBackend, title: string, docs: SnapshotDoc[]) {
     title, projectId: 'p-tara-1', documentIds: docs.map((d) => d.id), documents: docs.map((d) => ({ id: d.id, name: d.name })),
     itemSummary: 'Project copy', icon: '📄', zip: buildShareSnapshot({ id: 'p-tara-1', name: title }, docs), createdAt: Date.now() - 1000 * packSeq,
   })
+}
+
+test.describe('Received copy fidelity', { tag: ['@regression', '@sharing', '@api', '@data-integrity'] }, () => {
+  test('REG-889 every kind of content in a project shared as a copy arrives identical: notes, text box, links, ink, line, highlights, extracted image, audio, video and every document', { tag: '@P1' }, async ({ pdfOpen: app, page, project, sharing, secondUser }) => {
+    // A long journey (twelve kinds of content, a share, an import): the budget is for its length.
+    test.setTimeout(300_000)
+    sharing.addPerson(STUDENT, false)
+    const student = await secondUser(STUDENT, 'free')
+    await student.signIn()
+    await addEveryKindOfContent(app, page, project.name)
+    const sent = await snapshotDb(page, RESTORED_STORES)
+
+    await copyToSam(app)
+
+    await student.app.toasts.expectShown('A note shared with you was added to your projects', 60_000)
+    const copy = await receivedCopy(student.page, project.name)
+    expectSameAsSent(await snapshotDb(student.page, RESTORED_STORES), sent, copy.idMap, 'the student copy')
+  })
+
+  test('REG-890 an image extracted from a PDF and shared as a copy names the copy of its document as its source on the student\'s device', { tag: '@P3' }, async ({ pdfOpen: app, page, project, sharing, secondUser }) => {
+    knownDefect('DEF-507')
+    sharing.addPerson(STUDENT, false)
+    const student = await secondUser(STUDENT, 'free')
+    await student.signIn()
+    await app.viewer.tool('extract-image').click()
+    await app.viewer.dragOnPage(1, [0.1, 0.5], [0.5, 0.62])
+    // The image card saves a moment after its file; leaving before it would lose it (DEF-509, REG-891).
+    await settle(page, { mediaBlobs: 1, workspaceItems: 1 })
+    await copyToSam(app)
+
+    await student.app.toasts.expectShown('A note shared with you was added to your projects', 60_000)
+    await receivedCopy(student.page, project.name)
+    const [doc] = await readStore<{ id: string }>(student.page, 'documents')
+    const image = (await readStore<{ type: string; data: { sourceDocumentId?: string } }>(student.page, 'workspaceItems')).find((i) => i.type === 'image')
+    expect(image?.data.sourceDocumentId, 'the image names the student\'s own copy of the PDF').toBe(doc.id)
+  })
+})
+
+/** From the workspace: Home, Sharing, Share, a copy of the open project to Sam. */
+async function copyToSam(app: CognitiveCanvas) {
+  await app.header.home.click()
+  const screen = new SharingScreen(app.page)
+  await screen.open()
+  await screen.share.click()
+  const c = new ShareComposerDialog(app.page)
+  await c.how('Copy').click()
+  await (await c.findPerson(STUDENT.email, 'Sam Student')).click()
+  await c.sized()
+  await c.send.click()
+  await app.toasts.expectShown('Sent a copy to 1 person', 60_000)
 }

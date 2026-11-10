@@ -32,7 +32,7 @@
  {
   "id": "DEF-002",
   "title": "Restoring the wrong kind of file only says \"Restore failed\"",
-  "pri": "P2",
+  "pri": "P3",
   "steps": [
    "Open Backup & Restore, choose Restore, then Local.",
    "Select a file that is not a backup, for example a text file renamed to `.zip`.",
@@ -47,7 +47,7 @@
  {
   "id": "DEF-004",
   "title": "Uploading a broken PDF from Home leaves an empty project behind",
-  "pri": "P2",
+  "pri": "P3",
   "steps": [
    "On the Home screen with no projects, press Upload.",
    "Choose a PDF file that is damaged."

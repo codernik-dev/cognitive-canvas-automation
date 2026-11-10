@@ -1,32 +1,33 @@
 # Cognitive Canvas — Automation Suite
 
-Playwright + TypeScript end-to-end, persistence, offline, accessibility and performance tests for Cognitive Canvas: **871 test cases in 35 modules, 864 automated**.
+Playwright + TypeScript end-to-end, persistence, offline, accessibility and performance tests for Cognitive Canvas: **916 test cases in 35 modules, 909 automated**.
 - **Production build:** the tests run against the app's production build.
 - **Isolated:** every test runs in its own throwaway browser profile, and every external request is blocked or answered by an in-test fake, so a run can never reach a real account, repository or bucket.
 - **The one exception:** the opt-in live suite (`npm run live`) uses a dedicated QA account and removes what it creates; see [SETUP.md](SETUP.md) §8.
 
 **New here? Start with [SETUP.md](SETUP.md).** It walks you from nothing to a green run, step by step.
 
-## Where this repository goes
+## How it is set up
 
-This repository lives **inside** a checkout of the Cognitive Canvas app, in a folder named `automation`. It uses the app's built `dist/` and the app's installed Playwright:
+This repository stands alone. It has its own Playwright and its own copy of the app under test, in the git-ignored `app/` folder (this repository is public, so the app's build and source files stay out of git):
 
 ```bash
-git clone <app-repository-url> Cognitive-Canvas
-cd Cognitive-Canvas
-git clone https://github.com/codernik-dev/cognitive-canvas-automation.git automation
-npm ci && npm run build          # in the app folder: install its tools, build the app under test
-cd automation
-npm run setup                    # once: test browsers + the accessibility library
+git clone https://github.com/codernik-dev/cognitive-canvas-automation.git
+cd cognitive-canvas-automation
+npm ci                                # this repository's tools
+npm run setup                         # once: the test browsers
+npm run sync-app -- <built app folder>  # copy the app's build into app/
 ```
+
+To test a newer app: run `npm run build` in the app's folder, then `npm run sync-app -- <app folder>` here. To test an app checkout directly, without copying, set `CC_APP_DIR=<app folder>`.
 
 ## Quick start (from this folder)
 
 ```bash
 npm run smoke         # 8 tests, ~1 min: is the build alive
 npm run sanity        # 84 tests: each module's key checks, on desktop, phone, tablet, iPad, offline
-npm run p1            # 176 tests: every P1 case
-npm run regression    # 849 tests on chromium + phone + tablet + ipad + offline (~1 h on 2 workers)
+npm run p1            # 178 tests: every P1 case
+npm run regression    # 870 tests on chromium + phone + tablet + ipad + offline (~1 h on 2 workers)
 npm run performance   # 8 timing budgets, run alone on a quiet machine
 npm run report        # open the HTML report of the last run
 npm run ui            # pick tests and watch them run in a real browser
@@ -35,8 +36,6 @@ npm run ui            # pick tests and watch them run in a real browser
 The test cases, suites, results and defects are in one workbook: [docs/Cognitive-Canvas-Test-Suites.xlsx](docs/Cognitive-Canvas-Test-Suites.xlsx).
 
 Run one case: `npm run all -- -g "REG-042"`. Headed: add `--headed`. Debugger: add `--debug`.
-
-The longer commands in the docs (`npx playwright test -c automation/playwright.config.ts …`, `npm run test:smoke`) are the same runs started from the app folder. Use them only where the app's `package.json` has those scripts.
 
 ## Where things are
 

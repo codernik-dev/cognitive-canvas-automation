@@ -1,6 +1,5 @@
 {
-  // Type-checks the automation suite on its own (npm run typecheck:automation).
-  // Not referenced from the root tsconfig: the app build should not depend on test code.
+  // Type-checks the automation suite on its own (npm run typecheck).
   "compilerOptions": {
     "target": "ES2023",
     "lib": ["ES2023", "DOM", "DOM.Iterable"],
@@ -17,5 +16,5 @@
     "allowImportingTsExtensions": false
   },
   "include": ["**/*.ts"],
-  "exclude": ["reports"]
+  "exclude": ["reports", "node_modules", "app"]
 }

@@ -294,6 +294,15 @@ test.describe('Project cards', { tag: ['@regression', '@projects'] }, () => {
     await expectStoreCount(page, 'documents', 2)
   })
 
+  test('REG-955 files from Home that cannot be used are each refused by name with the reason, and no project is made', { tag: '@P2' }, async ({ signedIn: app, page }) => {
+    // Text saved as .pdf is refused for its contents (the app reads the bytes, not the name); an .exe for its type.
+    await app.home.upload([BAD_FILES.textAsPdf(), BAD_FILES.exe()])
+    await expect(app.home.statusLine("Skipped: automation-text-as.pdf (contents don't match its name), automation-program.exe (unsupported)")).toBeVisible({ timeout: 30_000 })
+    await expect(app.documents.backToProjects).toBeHidden()
+    expect(await projectRows(page)).toEqual([])
+    await expectStoreCount(page, 'documents', 0)
+  })
+
   test('REG-633 a single file uploaded from Home opens straight away, like a single upload inside a project', { tag: '@P3' }, async ({ signedIn: app, page }) => {
     knownDefect('DEF-604')
     await app.home.upload(TEXT_FILES.markdown())

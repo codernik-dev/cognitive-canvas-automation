@@ -23,15 +23,15 @@ import os from 'node:os'
 import path from 'node:path'
 import { test as base, expect } from '@playwright/test'
 import { MoBrowser, MOBROWSER_EXE, find, profileLocked, userProfiles } from '../helpers/mobrowser/bidi.js'
-import { ENV } from '../config/env.js'
+import { ENV, DIST_DIR } from '../config/env.js'
 import { LIVE_ORIGIN } from './live.js'
 
 export const MO_PROFILE = process.env.CC_MOBROWSER_PROFILE ?? path.join(process.env.LOCALAPPDATA ?? os.homedir(), 'cognitive-canvas-qa', 'mobrowser-profile')
 /** The only folder the folder-backup tests may write into (the QA owner adds it in the test profile). */
 export const MO_TEST_FOLDER = process.env.CC_MOBROWSER_TEST_FOLDER ?? path.join(os.homedir(), 'Documents', 'CognitiveCanvas-QA-Backups')
-/** The only repository the GitHub tests may push to. */
-export const MO_TEST_REPO = process.env.CC_MOBROWSER_TEST_REPO ?? 'cc'
-const DIST = path.resolve(import.meta.dirname, '..', '..', 'dist')
+/** The only repository the GitHub tests may push to, as owner/name. */
+export const MO_TEST_REPO = process.env.CC_MOBROWSER_TEST_REPO ?? 'codernik-dev/cc-test-'
+const DIST = DIST_DIR
 const APP_DB = 'cognitive-canvas'
 
 /** The user's own MoBrowser is open when any of their profiles is locked. */
@@ -41,7 +41,8 @@ export interface VaultEntry { id: string; name?: string; label?: string; owner?:
 
 /** The app inside MoBrowser, driven like a person would. */
 export class MoApp {
-  constructor(readonly mo: MoBrowser) {}
+  /** `note` records something worth knowing on the test (shown with its result). */
+  constructor(readonly mo: MoBrowser, private readonly note: (text: string) => void = () => {}) {}
 
   /** Real MuulOrigin sign-in in MoBrowser (skipped when this profile already holds a session). */
   async signIn() {
@@ -79,12 +80,37 @@ export class MoApp {
     await this.mo.goto(`${LIVE_ORIGIN}/`)
   }
 
+  /**
+   * Tap `pin` on the on-screen keypad, as a person does, checking that each digit lands.
+   *
+   * A person clicks into a window before using it; the test MoBrowser never has the system's focus. There, an
+   * input on the PIN screen was now and then not taken, a typed key and a tap alike (2026-11-09: 1 of 6 dots
+   * missing after tapping, none after typing all 6 at once, a probe's first key lost while later ones landed,
+   * and once a first tap that filled nothing for 5 s), while the same steps passed in other runs and on 4 Nov.
+   * So the screen's heading is clicked first, and each tap must fill the next PIN dot: one that does not within
+   * 3 s is tapped once more, as a person would, and that is recorded on the test ("MoBrowser input"). A digit
+   * that still does not land stops the test, saying which.
+   */
+  private async tapPin(pin: string) {
+    const filledDots = `() => [...document.querySelectorAll('div')].filter((d) => d.classList.contains('w-3.5') && d.classList.contains('rounded-full') && d.classList.contains('bg-primary-600')).length`
+    await this.mo.click(find.text, 'Welcome', 'the PIN screen heading')
+    for (const [i, digit] of [...pin].entries()) {
+      const landed = `(n) => (${filledDots})() === n`
+      await this.mo.click(find.button, digit, `PIN key ${digit}`)
+      const ok = await this.mo.waitFor(landed, i + 1, 3_000, `PIN dot ${i + 1}`).then(() => true, () => false)
+      if (ok) continue
+      this.note(`PIN digit ${i + 1} of ${pin.length} did not register on the first tap; tapped again`)
+      await this.mo.click(find.button, digit, `PIN key ${digit} (again)`)
+      await this.mo.waitFor(landed, i + 1, 5_000, `PIN dot ${i + 1} to fill after tapping ${digit} twice`)
+    }
+  }
+
   async createPin(pin = ENV.testPin) {
     await this.mo.waitFor(`() => document.body.innerText.includes('Create a 6-digit PIN')`, undefined, 60_000, 'PIN setup')
-    await this.mo.type(pin)
+    await this.tapPin(pin)
     await this.mo.click(find.button, 'Next', 'Next')
     await this.mo.waitFor(`() => document.body.innerText.includes('Confirm your PIN')`, undefined, 20_000, 'the confirm step')
-    await this.mo.type(pin)
+    await this.tapPin(pin)
     await this.mo.click(find.button, 'Create Account', 'Create Account')
     // A fresh profile opens the real content catalog first.
     await this.mo.waitFor(`() => [...document.querySelectorAll('h1,h2')].some((h) => h.textContent.trim() === 'Explore Content')`, undefined, 60_000, 'the content catalog')
@@ -178,8 +204,8 @@ export const test = base.extend<MoFixtures>({
     }
     expect(mo.interceptErrors, 'every request for the build was answered from dist/').toEqual([])
   },
-  moApp: async ({ mo }, provide) => {
-    await provide(new MoApp(mo))
+  moApp: async ({ mo }, provide, testInfo) => {
+    await provide(new MoApp(mo, (text) => testInfo.annotations.push({ type: 'MoBrowser input', description: text })))
   },
 })
 

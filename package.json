@@ -1,11 +1,11 @@
 {
   "name": "cognitive-canvas-automation",
   "private": true,
-  "description": "Playwright automation suite for Cognitive Canvas. Lives in the app's folder as automation/ and uses the app's installed Playwright.",
+  "description": "Playwright automation suite for Cognitive Canvas. Stands alone: it tests a copy of the app's build in app/ (npm run sync-app).",
   "type": "module",
   "scripts": {
-    "setup": "npm --prefix .. install --no-save @axe-core/playwright@4.13.0 && playwright install chromium webkit firefox",
-    "build-app": "npm --prefix .. run build",
+    "setup": "playwright install chromium webkit firefox",
+    "sync-app": "node scripts/sync-app.mjs",
     "smoke": "playwright test -c playwright.config.ts --project=chromium --grep @smoke",
     "sanity": "playwright test -c playwright.config.ts --project=chromium --project=phone --project=tablet --project=ipad --project=offline --grep @sanity",
     "p1": "playwright test -c playwright.config.ts --project=chromium --project=phone --project=tablet --project=ipad --project=offline --grep @P1",
@@ -20,5 +20,12 @@
     "typecheck": "tsc -p tsconfig.json",
     "inventory": "node scripts/build-inventory.mjs",
     "mobrowser:setup": "node scripts/mobrowser-setup.mjs"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.13.0",
+    "@playwright/test": "1.64.1",
+    "@types/node": "24.12.2",
+    "fflate": "0.8.3",
+    "typescript": "5.9.3"
   }
 }

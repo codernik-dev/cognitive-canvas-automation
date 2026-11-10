@@ -298,6 +298,52 @@ test.describe('Share dialog', { tag: ['@regression', '@sharing', '@api'] }, () =
     await expect(app.home.card('One Doc').getByRole('button', { name: 'This PDF is Live — manage recipients' })).toHaveText('Live · 2')
   })
 
+  test('REG-945 a class shared live straight after it is made reaches every member, even when one of the app\'s regular checks was already on its way', { tag: '@P2' }, async ({ signedIn: app, page, sharing }) => {
+    knownDefect('DEF-515')
+    await projectWithDocs(app, 'One Doc', [FIND_PDF.payload()])
+    const screen = new SharingScreen(page)
+    await screen.open()
+    await screen.tab('Classes & people').click()
+    await screen.newClass.click()
+    const g = new NewGroupDialog(page)
+    await g.name.fill('Physics 11')
+    for (const s of [STUDENT, STUDENT_2]) {
+      await g.search.fill(s.email)
+      await g.resultRow(s.email).getByRole('button', { name: 'Add', exact: true }).click()
+    }
+    // The order of events on the real server (2026-11-09, every run): the class was still being saved when
+    // the app's regular 3-second check of the sharing overview went out, and the app's refresh after saving
+    // took that check's answer instead of asking again. Here the save is held until that check is on its way.
+    const save = sharing.hold('POST', /^\/api\/sharing\/lists$/)
+    await g.create.click()
+    await save.reached
+    const check = sharing.hold('GET', /^\/api\/sharing\/overview$/)
+    await check.reached
+    save.release()
+    await expect.poll(() => sharing.callsTo('POST', '/api/sharing/lists').map((c) => (c.json as { memberIds: string[] }).memberIds)).toEqual([[STUDENT.sub, STUDENT_2.sub]])
+    // That check left before the save finished: the real server answered it with the class holding its first
+    // member only. Only that check gets this answer; any read the app sends after the save gets the full class.
+    const o = sharing.overview(TEACHER)
+    check.release({ json: { ...o, broadcastLists: o.broadcastLists.map((l) => (l.name === 'Physics 11' ? { ...l, memberIds: l.memberIds.slice(0, 1) } : l)) } })
+    await app.toasts.expectShown('Class “Physics 11” created')
+    expect(sharing.listsOf(TEACHER).map((l) => l.memberIds), 'the class on the server').toEqual([[STUDENT.sub, STUDENT_2.sub]])
+
+    // Straight away, as a teacher does: Share to class, live. What is shown is read once, not waited for:
+    // waiting would give the app's 20-second refresh time to correct it, which a teacher does not wait for.
+    const manage = screen.managePanel('Physics 11')
+    await expect(manage).toBeVisible()
+    expect.soft(await manage.innerText(), 'what the teacher is shown of the new class').toContain('2 people · 0 live shares')
+    await manage.getByRole('button', { name: 'Share to class' }).click()
+    const c = new ShareComposerDialog(page)
+    await c.expectOpen()
+    await c.how('Live').click()
+    await c.sized()
+    expect.soft((await c.send.textContent())?.trim(), 'the Share button').toBe('Share live with 2')
+    await c.send.click()
+    await app.toasts.expectShown(/^Shared live with \d+ (person|people) — your changes will reach them automatically$/)
+    expect(sharing.liveOf(TEACHER).map((s) => s.recipientIds), 'who the live share reaches').toEqual([[STUDENT.sub, STUDENT_2.sub]])
+  })
+
   test('REG-523 "+ New class" in the Share dialog creates the class on the server and ticks it, taking its members off the people list', { tag: '@P2' }, async ({ signedIn: app, page, sharing }) => {
     await projectWithDocs(app, 'One Doc', [FIND_PDF.payload()])
     const screen = new SharingScreen(page)

@@ -8,6 +8,7 @@ import { readStore, expectStoreCount } from '../../helpers/idb.js'
 import { expectThreadAnchored } from '../../assertions/geometry.js'
 import { FIND_PDF, SECOND_PDF } from '../../data/files.js'
 import { pngSizeOf, compareBlobWithPage } from '../../helpers/documents.js'
+import { knownDefect } from '../../helpers/defects.js'
 import type { Page } from '@playwright/test'
 import type { CognitiveCanvas } from '../../pages/CognitiveCanvas.js'
 
@@ -84,6 +85,20 @@ test.describe('Area tools', { tag: ['@regression', '@area-tools'] }, () => {
     expect(link.rect.y).toBeCloseTo(0.08, 2)
     expect(link.rect.width).toBeCloseTo(0.4, 2)
     expect(link.rect.height).toBeCloseTo(0.12, 2)
+  })
+
+  test('REG-891 an image extracted from a PDF keeps its canvas card and link when the workspace is left straight away', { tag: '@P3' }, async ({ pdfOpen: app, page }) => {
+    knownDefect('DEF-509')
+    await app.viewer.tool('extract-image').click()
+    await app.viewer.dragOnPage(1, [0.1, 0.08], [0.5, 0.2])
+    await expectStoreCount(page, 'mediaBlobs', 1)
+    // Home as soon as the image file is saved, as someone who extracts and moves on does.
+    await app.header.home.click()
+    await expect.poll(async () => ({
+      imageCards: (await readStore<{ type: string }>(page, 'workspaceItems')).filter((i) => i.type === 'image').length,
+      areaLinks: (await readStore(page, 'areaLinks')).length,
+      imageFiles: (await readStore(page, 'mediaBlobs')).length,
+    }), { timeout: 20_000, message: 'everything the extract made was saved' }).toEqual({ imageCards: 1, areaLinks: 1, imageFiles: 1 })
   })
 
   test('REG-048 Link Area is disabled until an item is selected, then links the item to the region', { tag: ['@P1', '@sanity'] }, async ({ pdfOpen: app, page }) => {

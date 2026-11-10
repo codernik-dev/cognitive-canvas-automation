@@ -10,10 +10,11 @@
  */
 import fs from 'node:fs'
 import path from 'node:path'
+import { APP_DIR } from '../config/env.js'
 import type { LocaleCode } from '../data/shell-files.js'
 
 type CatalogValue = string | Partial<Record<'zero' | 'one' | 'two' | 'few' | 'many' | 'other', string>>
-const LOCALE_DIR = path.resolve(import.meta.dirname, '..', '..', 'src', 'i18n', 'locales')
+const LOCALE_DIR = path.join(APP_DIR, 'src', 'i18n', 'locales')
 const cache = new Map<LocaleCode, Record<string, CatalogValue>>()
 
 export function catalog(code: LocaleCode): Record<string, CatalogValue> {

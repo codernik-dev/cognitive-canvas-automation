@@ -1,17 +1,17 @@
 """A single self-contained HTML copy of the QA report, to email or attach: no login, no internet needed.
 
-  python automation/scripts/reporting/build_report_html.py
+  python scripts/reporting/build_report_html.py
 
-Reads the CSVs written by build_report_data.py (automation/reports/reporting/qa-report-data/)
-and writes automation/docs/QA-Report.html.
+Reads the CSVs written by build_report_data.py (reports/reporting/qa-report-data/)
+and writes docs/QA-Report.html.
 """
 import csv, html, json, os
 from collections import Counter, defaultdict
 from datetime import date
 
-ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', '..'))
-DATA = os.path.join(ROOT, 'automation', 'reports', 'reporting', 'qa-report-data')
-OUT = os.path.join(ROOT, 'automation', 'docs', 'QA-Report.html')
+ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))
+DATA = os.path.join(ROOT, 'reports', 'reporting', 'qa-report-data')
+OUT = os.path.join(ROOT, 'docs', 'QA-Report.html')
 RUN = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'run_config.json'), encoding='utf-8'))
 COMMIT, BRANCH, NAME = RUN['commit'], RUN['branch'], RUN['name']
 

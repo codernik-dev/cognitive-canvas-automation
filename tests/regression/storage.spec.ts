@@ -54,4 +54,52 @@ test.describe('Storage', { tag: ['@regression', '@backup', '@storage'] }, () => 
     await storage.dialog.getByRole('button', { name: 'Documents', exact: true }).click()
     await expect(storage.kind('Documents')).toHaveAttribute('aria-pressed', 'false')
   })
+
+  test('REG-956 the legend filters say what a press does; a kind with nothing in it says "Nothing here yet"; images list with their project, and notes group by project', { tag: '@P3' }, async ({ pdfOpen: app, page, project }) => {
+    const storage = new StorageScreens(page)
+    const tips: ['Documents' | 'Images & recordings' | 'Notes & highlights', string][] = [
+      ['Documents', 'Show only documents'],
+      ['Images & recordings', 'Show only images & recordings'],
+      ['Notes & highlights', 'Show only notes & highlights'],
+    ]
+    // Only the PDF so far: no images or recordings.
+    await app.header.home.click()
+    await storage.chip.click()
+    for (const [kind, tip] of tips) await expect(storage.kind(kind), kind).toHaveAttribute('title', tip)
+    await storage.kind('Images & recordings').click()
+    await expect(storage.kind('Images & recordings')).toHaveAttribute('aria-pressed', 'true')
+    await expect(storage.kind('Images & recordings')).toHaveAttribute('title', 'Show everything')
+    await expect(storage.dialog.getByText('Nothing here yet', { exact: true })).toBeVisible()
+    // The filter is a removable chip above the list.
+    await storage.dialog.getByRole('button', { name: 'Images & recordings', exact: true }).click()
+    await expect(storage.kind('Images & recordings')).toHaveAttribute('aria-pressed', 'false')
+    await storage.close.click()
+    await expect(storage.dialog).toBeHidden()
+
+    // An image cut from the PDF, and a note on the canvas.
+    await app.home.openProject(project.name)
+    await app.documents.openDocument(FIND_PDF.displayName)
+    await app.viewer.expectDocumentOpen(FIND_PDF.displayName, FIND_PDF.pageCount)
+    await app.viewer.tool('extract-image').click()
+    await app.viewer.dragOnPage(1, [0.1, 0.08], [0.5, 0.2])
+    await expectStoreCount(page, 'mediaBlobs', 1)
+    const note = (await app.canvas.place('note', 0.6, 0.6))!
+    await app.canvas.writeNote(note, 'Storage lens note')
+    await expect.poll(async () => (await readStore<{ type: string; data: { content?: string } }>(page, 'workspaceItems')).some((i) => i.type === 'note' && (i.data.content ?? '').includes('Storage lens note'))).toBe(true)
+    await app.header.home.click()
+
+    await storage.chip.click()
+    await storage.kind('Images & recordings').click()
+    await expect(storage.dialog.getByText('1 item', { exact: true })).toBeVisible()
+    // Each image or recording names where it lives: its project, and its document when it has one.
+    await expect(storage.dialog.getByText(new RegExp(`^${project.name}( · ${FIND_PDF.displayName})?$`))).toBeVisible()
+    await storage.dialog.getByRole('button', { name: 'Images & recordings', exact: true }).click()
+
+    await storage.kind('Notes & highlights').click()
+    await expect(storage.kind('Notes & highlights')).toHaveAttribute('aria-pressed', 'true')
+    await expect(storage.dialog.getByText('1 item', { exact: true })).toBeVisible()
+    await expect(storage.dialog.getByText(project.name, { exact: true }).first()).toBeVisible()
+    await storage.dialog.getByRole('button', { name: 'Notes & highlights', exact: true }).click()
+    await expect(storage.kind('Notes & highlights')).toHaveAttribute('aria-pressed', 'false')
+  })
 })

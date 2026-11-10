@@ -25,14 +25,15 @@ Set `CC_APP_DIR=<app folder>` to test a checkout directly instead of `app/`. Glo
 |---|---|
 | Smoke (8 tests, chromium) | `npm run smoke` |
 | Sanity (84 tests: every module's 1-3 key checks, on chromium + phone + tablet + ipad + offline) | `npm run sanity` |
-| Full regression (849 test executions on chromium + phone + tablet + ipad + offline) | `npm run regression` |
+| Full regression (870 test executions on chromium + phone + tablet + ipad + offline) | `npm run regression` |
 | Part of the regression run, as CI does it | `npm run regression -- --shard=1/4` (… `4/4`) |
 | Performance budgets (8 tests, alone, one worker) | `npm run performance` |
-| Every P1 case (176 tests, all device projects) | `npm run p1` |
+| Every P1 case (178 tests, all device projects) | `npm run p1` |
 | Accessibility only (50 tests) | `npm run a11y` |
 | Cross-browser smoke (firefox + webkit) | `npm run cross-browser` |
 | **Live: real MuulOrigin and Muul Cloud** (opt-in, QA account) | set `CC_LIVE_EMAIL` and `CC_LIVE_PASSWORD` in the shell (never in a file), then `npm run live`. It serves this build at the app's real address inside the test browser, signs in for real, backs up to and restores from the real cloud, and deletes everything it created. Skipped when the two variables are unset. Traces are off for it: they would record the real session. |
-| MoBrowser test profile, once (Windows, MoBrowser installed) | `npm run mobrowser:setup`, then add the test repository (`CC_MOBROWSER_TEST_REPO`, default `cc`) and the QA folder (`CC_MOBROWSER_TEST_FOLDER`, default `Documents\CognitiveCanvas-QA-Backups`) in MoBrowser's credential manager. Close your own MoBrowser before live runs. |
+| **Live sharing: teacher to students on the real server** (opt-in) | as above (the QA account is the teacher and must be on a paid plan), plus `CC_LIVE_STUDENTS` (two comma-separated emails of real Free accounts with empty inboxes) and `CC_LIVE_STUDENT_PASSWORD` (one password for both), in the shell only. `tests/live/sharing.live.spec.ts` (copies, classes, plan gates) and `live-share.live.spec.ts` (live shares) open one browser per student, compare what arrives with what was sent row by row, and delete every share, live share, class and received note they made. Always one worker: the tests share the accounts. 23 tests, about an hour; keep the machine awake. |
+| MoBrowser test profile, once (Windows, MoBrowser installed) | `npm run mobrowser:setup`, then add the test repository (`CC_MOBROWSER_TEST_REPO`, default `codernik-dev/cc-test-`) and the QA folder (`CC_MOBROWSER_TEST_FOLDER`, default `Documents\CognitiveCanvas-QA-Backups`) in MoBrowser's credential manager. Close your own MoBrowser before live runs. |
 | Watch a run in slow motion | `CC_SLOWMO=600` with `--headed --workers=1` (the test time limit grows with it) |
 | One module | `npx playwright test -c playwright.config.ts tests/regression/ocr.spec.ts` (module specs are listed in the workbook's "Suite Structure" sheet) |
 | Everything, every project | `npm run all` |

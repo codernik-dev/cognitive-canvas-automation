@@ -98,10 +98,14 @@ export class MoBrowser {
 
   private dialogWaiters: Array<{ accept: boolean; resolve: (d: { type: string; message: string }) => void }> = []
 
-  /** Answer the next native dialog (confirm/alert) and resolve with its type and text. Call BEFORE the action that opens it. */
-  async acceptNextDialog(accept = true): Promise<Promise<{ type: string; message: string }>> {
+  /**
+   * Answer the next native dialog (confirm/alert). Call BEFORE the action that opens it; `opened` then
+   * resolves with the dialog's type and text. It comes in an object on purpose: a promise returned from
+   * an async function is flattened by `await`, which would wait for the dialog before the action that opens it.
+   */
+  async acceptNextDialog(accept = true): Promise<{ opened: Promise<{ type: string; message: string }> }> {
     await this.send('session.subscribe', { events: ['browsingContext.userPromptOpened'] })
-    return new Promise((resolve) => this.dialogWaiters.push({ accept, resolve }))
+    return { opened: new Promise((resolve) => this.dialogWaiters.push({ accept, resolve })) }
   }
 
   send(method: string, params: Json): Promise<Json> {
@@ -206,14 +210,25 @@ export class MoBrowser {
       if (!r.width || !r.height || disabled) return null;
       return { x: Math.round(r.x + r.width / 2), y: Math.round(r.y + r.height / 2) };
     }`, arg, 30_000, `${what} to be visible and enabled`)
-    await this.send('input.performActions', {
+    const actions = {
       context: this.context,
       actions: [{ type: 'pointer', id: 'mouse', parameters: { pointerType: 'mouse' }, actions: [
         { type: 'pointerMove', x: box.x, y: box.y, duration: 0 },
         { type: 'pointerDown', button: 0 },
         { type: 'pointerUp', button: 0 },
       ] }],
-    })
+    }
+    // A window MoBrowser has not drawn yet (black, just launched) refuses synthesized input with NS_ERROR_FAILURE
+    // (2026-11-09). That is MoBrowser not ready, not the page: wait and send again, up to 10 s.
+    for (let attempt = 1; ; attempt++) {
+      try {
+        await this.send('input.performActions', actions)
+        break
+      } catch (e) {
+        if (!/NS_ERROR_FAILURE/.test(String(e)) || attempt === 20) throw e
+        await sleep(500)
+      }
+    }
     await this.send('input.releaseActions', { context: this.context })
   }
 

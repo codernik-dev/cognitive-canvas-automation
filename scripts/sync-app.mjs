@@ -20,6 +20,7 @@ const COPIED = [
   'e2e/fixtures', // the legacy PDF and MP3 (data/files.ts)
   'src/i18n/locales', // helpers/shell.ts
   'src/components/tours/tourSteps.ts', // helpers/mobileTours.ts
+  'src/components/shared/settings/toolGuideData.ts', // helpers/toolGuide.ts
   'src/services/subscription/__fixtures__/entitlements-cognitive-canvas.json', // helpers/mocks/muulAccount.ts
 ]
 

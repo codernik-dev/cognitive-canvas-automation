@@ -87,8 +87,8 @@ Run every command from this repository's folder.
 |---|---|---|---|
 | Check the build is alive | `npm run smoke` | 8 | ~1 min |
 | Check each module's key features, on desktop, phone, tablet, iPad, offline | `npm run sanity` | 84 | ~10 min |
-| Run every P1 (most important) case | `npm run p1` | 176 | ~15-20 min |
-| Run everything (full regression) | `npm run regression` | 849 | ~1 h |
+| Run every P1 (most important) case | `npm run p1` | 178 | ~15-20 min |
+| Run everything (full regression) | `npm run regression` | 870 | ~1 h |
 | Check speed (machine quiet, nothing else running) | `npm run performance` | 8 | ~3 min |
 | Check on Firefox and Safari's engine | `npm run cross-browser` | 16 | ~2 min |
 | Watch tests run, pick them one by one | `npm run ui` | | |
@@ -125,7 +125,7 @@ How to read each result:
 
 ## 8. Live tests against the real servers (only when your lead asks)
 
-A small opt-in set (`tests/live/`) checks the app against the **real** MuulOrigin sign-in, Muul Cloud and MoBrowser, using a dedicated QA account. Your lead gives you the account. Type it into your terminal only, never into a file:
+A small opt-in set (`tests/live/`) checks the app against the **real** MuulOrigin sign-in, Muul Cloud, sharing service and MoBrowser, using a dedicated QA account. Your lead gives you the account. Type it into your terminal only, never into a file:
 
 ```powershell
 # PowerShell
@@ -133,18 +133,27 @@ $env:CC_LIVE_EMAIL = "<qa account email>"; $env:CC_LIVE_PASSWORD = "<qa account 
 npm run live
 ```
 
+The sharing tests also need student accounts: real accounts on the Free plan that receive what the QA account (the teacher, on a paid plan) shares. Give two, with one password for both, the same way:
+
+```powershell
+$env:CC_LIVE_STUDENTS = "<student 1 email>,<student 2 email>"; $env:CC_LIVE_STUDENT_PASSWORD = "<their password>"
+```
+
+Use students whose inbox is empty: a fresh test browser imports everything already shared with them.
+
 What the live tests do:
 - sign in for real;
 - back up to and restore from the real cloud;
 - sync between two browsers;
+- share copies and live shares from the teacher to the students, and check that every note, highlight, stroke, image, recording and document arrives identical;
 - sign out;
-- delete everything they created.
+- delete everything they created (cloud backups, shares, live shares, classes and received notes).
 
-The password never appears in a report or a trace.
+No password appears in a report or a trace.
 
 For the MoBrowser tests (Windows, MoBrowser installed), set up once:
 1. Run `npm run mobrowser:setup`.
-2. In MoBrowser's credential manager, add the test GitHub repository (`cc`) and the folder the setup command printed.
+2. In MoBrowser's credential manager, add the test GitHub repository (`codernik-dev/cc-test-`, with a token that can push to it) and the folder the setup command printed.
 3. Close MoBrowser.
 
 Always close your own MoBrowser before `npm run live`.

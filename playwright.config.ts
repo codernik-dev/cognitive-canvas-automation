@@ -120,12 +120,15 @@ export default defineConfig({
     // LIVE: the build under test against the real MuulOrigin servers with the QA
     // account (fixtures/live.ts). Opt-in only (npm run test:live), never in the
     // regression run. Traces off: a trace records request bodies, and these hold
-    // a real session. Screenshots and video still show what went wrong.
+    // a real session. Screenshots and video still show what went wrong. The fake
+    // camera/mic: the live sharing tests record a video note.
     {
       name: 'live',
       testMatch: /tests[\\/]live[\\/].*\.live\.spec\.ts$/,
-      timeout: 300_000,
-      use: { ...desktop, trace: 'off' },
+      // 8 minutes: the real server's list of the teacher's live shares takes about 42 s (DEF-516, and it grows
+      // with every live share made), and each sharing test reads it at least twice, in its set-up and clean-up.
+      timeout: 480_000,
+      use: { ...desktop, ...fakeMedia, trace: 'off' },
     },
     // Cross-browser: the smoke suite only, on the scheduled run (07-EXECUTION-GUIDE.md).
     {

@@ -11,7 +11,7 @@
 import { test, expect, type ItemRow } from '../../fixtures/canvas.js'
 import { readStore, expectStoreCount } from '../../helpers/idb.js'
 import { recordClip, answerNextDialog } from '../../helpers/canvasMedia.js'
-import { HEADER_ONLY_MP4, PNG_NAMED, MOV_FILE, bigFile } from '../../data/canvas-files.js'
+import { HEADER_ONLY_MP4, PNG_NAMED, MOV_FILE, TONE_MP3, bigFile } from '../../data/canvas-files.js'
 import type { Locator, Page } from '@playwright/test'
 import type { CanvasWorkbench, CanvasDialogs } from '../../components/CanvasWorkbench.js'
 
@@ -316,5 +316,35 @@ test.describe('Video notes', { tag: ['@regression', '@media', '@video'] }, () =>
     await card.getByRole('textbox').press('Enter')
     await expect.poll(async () => (await videoRow(page)).data.name).toBe('Course intro')
     await expect(card.getByTitle('Click to rename')).toHaveText('Course intro')
+  })
+
+  test('REG-958 Delete from the right-click menu asks in words that fit what is selected: a video note, then a video and an audio note together; No keeps them', { tag: '@P3' }, async ({ ws, dialogs, page }) => {
+    const { id: video } = await uploadClip(ws, dialogs, page)
+    let asked = answerNextDialog(page, false)
+    await ws.rightClickItem(video)
+    await ws.menuItem('Delete').click()
+    expect(await asked).toBe('Delete this video note?\n\nRecordings cannot be recovered.')
+    await expectStoreCount(page, 'workspaceItems', 1)
+
+    // An audio note as well (the committed tone), placed above and clear of the video card.
+    await ws.place('audio', 0.25, 0.15)
+    const m = dialogs.media(dialogs.audio, 'Audio')
+    await m.file.setInputFiles(TONE_MP3.path)
+    await expect(m.name).toHaveValue('tone')
+    await m.create.click()
+    await expect(dialogs.audio).toBeHidden({ timeout: 20_000 })
+    await expectStoreCount(page, 'workspaceItems', 1, (i) => i.type === 'audio')
+    const audio = (await readStore<ItemRow<{ type: string }>>(page, 'workspaceItems')).find((r) => r.type === 'audio')!.id
+
+    // Box-select both (a click on a video card could start it playing): from the empty lower-right of the canvas
+    // to near its top-left corner; the box takes every item it touches. Then the menu on one of them.
+    await ws.drag(await ws.at(0.9, 0.85), await ws.at(0.08, 0.08), { modifiers: ['Shift'] })
+    await ws.rightClickItem(audio)
+    asked = answerNextDialog(page, false)
+    await ws.menuItem(/^Delete \(2\)$/).click()
+    expect(await asked).toBe('Delete 2 audio/video notes?\n\nRecordings cannot be recovered.')
+    await expectStoreCount(page, 'workspaceItems', 2)
+    await expect(ws.item(video)).toBeVisible()
+    await expect(ws.item(audio)).toBeVisible()
   })
 })

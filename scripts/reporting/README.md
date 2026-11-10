@@ -32,6 +32,6 @@ Requirements: Node (already needed for the suite) and Python 3 with `openpyxl` (
    npm run inventory -- --results reports/run-9/results.json
    ```
 6. Open the workbook in Excel once and save it, so its formulas are calculated before it is uploaded or shared.
-7. Refresh the manager's report page: replace its data files with the new CSVs from `reports/reporting/qa-report-data/` (or ask Claude to "refresh the QA report from the latest run"). Its link stays the same.
+7. Refresh the manager's report page: replace its data files with the new CSVs from `reports/reporting/qa-report-data/`. Its link stays the same.
 
 Close the workbook in Excel before step 5; Windows does not let a script overwrite an open file.

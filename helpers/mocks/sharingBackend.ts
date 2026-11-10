@@ -208,6 +208,28 @@ interface Override {
   reply: (ctx: Ctx) => MockReply | Promise<MockReply>
 }
 
+interface HoldEntry {
+  method: string
+  path: RegExp
+  /** Matching requests still to let through before the one that is held. */
+  pass: number
+  armed: boolean
+  reached: () => void
+  release: (reply?: MockReply) => void
+  released: Promise<MockReply | undefined>
+}
+
+/** A request the fake keeps waiting until the test lets it go (see `SharingBackend.hold`). */
+export interface Hold {
+  /** Resolves once the held request has arrived and is waiting. */
+  reached: Promise<void>
+  /**
+   * Let it through: the fake then answers it as usual, or with `reply` when one is given. A reply
+   * answers this one request only, so later requests on the same path get the fake's own answer.
+   */
+  release: (reply?: MockReply) => void
+}
+
 /* ── small utilities, exported for specs ───────────────────────────────── */
 
 export const sha256 = (b: Buffer | Uint8Array) => createHash('sha256').update(b).digest('hex')
@@ -279,6 +301,7 @@ export class SharingBackend {
 
   private seq = 0
   private readonly overrides: Override[] = []
+  private readonly holds: HoldEntry[] = []
   private readonly routes: Array<[string, RegExp, Handler]> = []
 
   constructor() {
@@ -328,6 +351,26 @@ export class SharingBackend {
     const o: Override = { method: method.toUpperCase(), path, times, reply: typeof reply === 'function' ? reply : () => reply }
     this.overrides.push(o)
     return { clear: () => { o.times = 0 } }
+  }
+
+  /**
+   * Keep one matching request waiting until `release()`, then answer it with the
+   * fake's own logic. `pass` lets that many matching requests through first, so
+   * "the second push from now" can be held while the first goes on. Holds the
+   * request open in the browser: a test must release what it holds.
+   */
+  hold(method: string, path: RegExp, { pass = 0 }: { pass?: number } = {}): Hold {
+    let reached!: () => void
+    let release!: (reply?: MockReply) => void
+    const reachedP = new Promise<void>((r) => { reached = r })
+    const released = new Promise<MockReply | undefined>((r) => { release = r })
+    this.holds.push({ method: method.toUpperCase(), path, pass, armed: true, reached, release, released })
+    return { reached: reachedP, release }
+  }
+
+  /** Let every held request go and disarm the rest (fixture teardown: a failed test must not leave a request hanging). */
+  releaseAll() {
+    for (const h of this.holds) { h.armed = false; h.release() }
   }
 
   /** Requests the fake has answered, optionally filtered. */
@@ -393,6 +436,19 @@ export class SharingBackend {
 
     const record = (status: number) => this.calls.push({ caller: callerId, method, path, query: url.searchParams, json, form, raw, status })
     if (!auth.startsWith('Bearer ')) { record(401); return { status: 401, json: { message: 'Unauthorized' } } }
+
+    // Every armed hold counts this request; the first one whose turn it is keeps it waiting.
+    let holdHere: HoldEntry | undefined
+    for (const h of this.holds) {
+      if (!h.armed || h.method !== method || !h.path.test(path)) continue
+      if (h.pass > 0) h.pass -= 1
+      else if (!holdHere) { holdHere = h; h.armed = false }
+    }
+    if (holdHere) {
+      holdHere.reached()
+      const answer = await holdHere.released
+      if (answer) { record(answer.status ?? 200); return answer }
+    }
 
     const o = this.overrides.find((x) => x.times > 0 && x.method === method && x.path.test(path))
     if (o) {

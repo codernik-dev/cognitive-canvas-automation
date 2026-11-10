@@ -1,6 +1,6 @@
 # Cognitive Canvas — Automation Suite
 
-Playwright + TypeScript end-to-end, persistence, offline, accessibility and performance tests for Cognitive Canvas: **871 test cases in 35 modules, 864 automated**.
+Playwright + TypeScript end-to-end, persistence, offline, accessibility and performance tests for Cognitive Canvas: **916 test cases in 35 modules, 909 automated**.
 - **Production build:** the tests run against the app's production build.
 - **Isolated:** every test runs in its own throwaway browser profile, and every external request is blocked or answered by an in-test fake, so a run can never reach a real account, repository or bucket.
 - **The one exception:** the opt-in live suite (`npm run live`) uses a dedicated QA account and removes what it creates; see [SETUP.md](SETUP.md) §8.
@@ -26,8 +26,8 @@ To test a newer app: run `npm run build` in the app's folder, then `npm run sync
 ```bash
 npm run smoke         # 8 tests, ~1 min: is the build alive
 npm run sanity        # 84 tests: each module's key checks, on desktop, phone, tablet, iPad, offline
-npm run p1            # 176 tests: every P1 case
-npm run regression    # 849 tests on chromium + phone + tablet + ipad + offline (~1 h on 2 workers)
+npm run p1            # 178 tests: every P1 case
+npm run regression    # 870 tests on chromium + phone + tablet + ipad + offline (~1 h on 2 workers)
 npm run performance   # 8 timing budgets, run alone on a quiet machine
 npm run report        # open the HTML report of the last run
 npm run ui            # pick tests and watch them run in a real browser

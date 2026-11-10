@@ -93,7 +93,8 @@ def tests_line(d):
 L = []
 L += ['# 08 — Defects and Limitations', '',
       f"Checked on commit `{RUN['commit']}`, production build. Desktop Chrome (1366×800) unless the area says otherwise; phone = Pixel 5 emulation, tablet = 1024×1366 Chromium "
-      'with touch, iPad = WebKit with the iPad profile. Every defect below was reproduced by an automated test, except the four marked *intermittent*, which were seen but cannot '
+      'with touch, iPad = WebKit with the iPad profile. Every defect below was reproduced by an automated test, except the '
+      f"{({1: 'one', 2: 'two', 3: 'three', 4: 'four', 5: 'five', 6: 'six', 7: 'seven', 8: 'eight', 9: 'nine'}).get(n_int, n_int)} marked *intermittent*, which were seen but cannot "
       'be reproduced on demand. Priorities are suggestions. None has been filed as a GitHub issue.', '',
       '## Summary', '',
       '| Suggested priority | Defects | of which intermittent |', '|---|---:|---:|']
@@ -116,6 +117,8 @@ for d in defects:
         L += [f'  {i}. {s}' for i, s in enumerate(d['steps'], 1)]
     L.append(f"- **Expected:** {d.get('expected', '')}")
     L.append(f"- **Actual:** {d.get('actual', '')}")
+    if d.get('dev'):
+        L.append(f"- **For developers:** {d['dev']}")
     for e in d.get('extra', []):
         L.append(f'- {e}')
     L.append('')

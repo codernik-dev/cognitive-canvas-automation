@@ -16,9 +16,11 @@ import { test, expect, STUDENT, STUDENT_2, type SecondUser } from '../../fixture
 import type { CognitiveCanvas } from '../../pages/CognitiveCanvas.js'
 import type { SharingBackend } from '../../helpers/mocks/sharingBackend.js'
 import { knownDefect } from '../../helpers/defects.js'
-import { FIND_PDF, SECOND_PDF } from '../../data/files.js'
+import { BINARY, FIND_PDF, SECOND_PDF } from '../../data/files.js'
 import { readStore } from '../../helpers/idb.js'
-import { ShellBanners } from '../../pages/ShellPages.js'
+import { CanvasDialogs } from '../../components/CanvasWorkbench.js'
+import { settle } from '../../workflows/richContent.js'
+import { ShellBanners, ProjectsScreen } from '../../pages/ShellPages.js'
 import { SharingScreen, ShareComposerDialog, LiveHeader, AddPeopleDialog } from '../../pages/SharingScreen.js'
 import { documentDigests, localJson, projectRows, readSnapshot } from '../../helpers/sharingFlows.js'
 
@@ -47,6 +49,62 @@ async function studentCopy(student: SecondUser, title = 'Automation Project') {
 }
 
 const sharingOf = (page: Page) => new SharingScreen(page)
+
+const mirrorPath = /^\/api\/sharing\/live\/[^/]+\/mirror$/
+
+/** A canvas card's transfer bar (MediaTransferOverlay.tsx: Uploading / Waiting to upload / Receiving). */
+const progressBar = (page: Page, itemId: string) => page.locator(`[data-workspace-item][data-item-id="${itemId}"]`).getByRole('progressbar')
+
+/** Recording sizes in bytes, by blob id. */
+async function blobSizes(page: Page) {
+  return Object.fromEntries((await readStore<{ id: string; data?: { __bytes?: number } }>(page, 'mediaBlobs')).map((b) => [b.id, b.data?.__bytes ?? 0]))
+}
+
+type AudioCard = { id: string; type: string; data: { name?: string; blobId?: string } }
+
+/**
+ * Teacher live to Sam, who has the project open. The teacher's next push (a note)
+ * is held at the server while two recordings are added, so the push after it has
+ * both to carry: it sends one and holds the other back for the push after that.
+ * Returns with the first of those recording pushes waiting at the server.
+ */
+async function twoRecordingsQueued(app: CognitiveCanvas, sharing: SharingBackend, secondUser: (id: typeof STUDENT, plan?: 'free') => Promise<SecondUser>) {
+  const student = await secondUser(STUDENT, 'free')
+  await student.signIn()
+  await goLiveToSam(app, sharing)
+  await studentCopy(student)
+  await student.app.home.openProject('Automation Project')
+  await student.app.documents.openDocument(FIND_PDF.displayName)
+
+  const notePush = sharing.hold('POST', pushPath)
+  await app.canvas.place('note', 0.5, 0.2)
+  await notePush.reached
+  await addAudioNote(app, 0.3, 'Tone A')
+  await addAudioNote(app, 0.7, 'Tone B')
+  await settle(app.page, { mediaBlobs: 2 })
+  const audioCards = async () => new Map((await readStore<AudioCard>(app.page, 'workspaceItems')).filter((i) => i.type === 'audio').map((i) => [i.data.name!, i]))
+  await expect.poll(async () => [...(await audioCards()).keys()].sort(), { message: 'both audio notes saved' }).toEqual(['Tone A', 'Tone B'])
+  const cards = await audioCards()
+  const firstRecordingPush = sharing.hold('POST', pushPath)
+  const secondRecordingPush = sharing.hold('POST', pushPath, { pass: 1 })
+  notePush.release()
+  await firstRecordingPush.reached
+  return { student, cards, firstRecordingPush, secondRecordingPush }
+}
+
+/** An uploaded audio note (the tone fixture) at a spot on the canvas. */
+async function addAudioNote(app: CognitiveCanvas, x: number, name: string) {
+  const dialogs = new CanvasDialogs(app.page)
+  await app.canvas.place('audio', x, 0.5)
+  const audio = dialogs.media(dialogs.audio, 'Audio')
+  await audio.tab('Upload').click()
+  await audio.file.setInputFiles(BINARY.toneMp3)
+  await expect(audio.name).toHaveValue('tone') // suggested from the file name; typing before it lands gets prefixed
+  await audio.name.fill(name)
+  await expect(audio.name).toHaveValue(name)
+  await audio.create.click()
+  await expect(dialogs.audio).toBeHidden({ timeout: 30_000 })
+}
 
 /** A project with two PDFs, shared live with Sam from the Sharing screen: every document, or only the first. */
 async function twoDocsLive(app: CognitiveCanvas, sharing: SharingBackend, scope: 'all' | 'first') {
@@ -207,6 +265,101 @@ test.describe('Live sharing', { tag: ['@regression', '@sharing', '@api'] }, () =
 
   })
 
+  test('REG-952 deleting a project that is shared live says so first; Cancel keeps it, and Delete ends the live share on the server before the project goes', { tag: '@P1' }, async ({ pdfOpen: app, page, sharing }) => {
+    const share = await goLiveToSam(app, sharing)
+    await app.header.home.click()
+    await app.home.cardAction('Automation Project', 'Delete')
+    const dialog = page.getByRole('dialog', { name: 'Delete Project' })
+    await expect(dialog).toContainText('This project is shared Live with 1 person. Deleting it ends the broadcast — they keep what they already received, and stop seeing it as live.')
+    await dialog.getByRole('button', { name: 'Cancel' }).click()
+    await expect(dialog).toBeHidden()
+    expect(share.stopped).toBe(false)
+    expect(await projectRows(page)).toHaveLength(1)
+
+    await app.home.cardAction('Automation Project', 'Delete')
+    await dialog.getByRole('button', { name: 'Delete', exact: true }).click()
+    await expect(dialog).toBeHidden()
+    expect(sharing.callsTo('DELETE', `/api/sharing/live/${share.shareId}`)).toHaveLength(1)
+    expect(share.stopped).toBe(true)
+    expect(await projectRows(page)).toEqual([])
+    expect(Object.keys((await localJson<Record<string, unknown>>(page, 'cc2_live_owner_v1')) ?? {})).toEqual([])
+    await expect(app.home.card('Automation Project')).toHaveCount(0)
+  })
+
+  test('REG-953 a live project deleted while the server cannot be reached is still deleted, and the teacher is told its recipients may still see it as live', { tag: '@P2' }, async ({ pdfOpen: app, page, sharing }) => {
+    const share = await goLiveToSam(app, sharing)
+    await app.header.home.click()
+    sharing.override('DELETE', /^\/api\/sharing\/live\/[^/]+$/, { status: 503, json: { message: 'Service unavailable' } }, 1)
+    await app.home.cardAction('Automation Project', 'Delete')
+    const dialog = page.getByRole('dialog', { name: 'Delete Project' })
+    await dialog.getByRole('button', { name: 'Delete', exact: true }).click()
+    await app.toasts.expectShown('Project deleted. We could not reach the server to end its live share, so recipients may still see it as live until you are back online.')
+    expect(sharing.callsTo('DELETE', `/api/sharing/live/${share.shareId}`).map((c) => c.status)).toEqual([503])
+    expect(share.stopped).toBe(false)
+    expect(await projectRows(page)).toEqual([])
+  })
+
+  test('REG-954 deleting several projects, one of them shared live, says so first; when the server cannot end that live share both are still deleted and the teacher is told', { tag: '@P2' }, async ({ pdfOpen: app, page, sharing }) => {
+    const share = await goLiveToSam(app, sharing)
+    await app.header.home.click()
+    await app.home.createProject('Plain Project')
+    await app.documents.backToProjects.click() // a new project opens on creation
+    const projects = new ProjectsScreen(page)
+    await projects.selectButton.click()
+    await projects.selectAll.click()
+    await expect(projects.selectedCount).toHaveText('2 selected')
+    await projects.deleteSelected.click()
+    const dialog = projects.bulkDialog('Delete 2 Projects')
+    await expect(dialog).toContainText('One of these is shared Live. Deleting ends that broadcast — recipients keep what they already received, and stop seeing it as live.')
+
+    sharing.override('DELETE', /^\/api\/sharing\/live\/[^/]+$/, { status: 503, json: { message: 'Service unavailable' } }, 1)
+    await dialog.getByRole('button', { name: 'Delete 2', exact: true }).click()
+    await app.toasts.expectShown('Deleted. 1 live share could not be ended on the server — those recipients may still see them as live until you are back online.')
+    expect(share.stopped).toBe(false)
+    expect(await projectRows(page)).toEqual([])
+  })
+
+  test('REG-957 a note the teacher sent opens read-only for the student, marked VIEW ONLY; Duplicate to edit puts the student\'s own editable copy beside it', { tag: '@P2' }, async ({ pdfOpen: app, page, sharing, secondUser }) => {
+    type Note = { id: string; type: string; projectId: string; x: number; y: number; data: { content?: string; private?: boolean } }
+    const noteId = (await app.canvas.place('note', 0.4, 0.3))!
+    await app.canvas.writeNote(noteId, 'From the teacher')
+    await settle(page, { workspaceItems: 1 })
+    const student = await secondUser(STUDENT, 'free')
+    await student.signIn()
+    await goLiveToSam(app, sharing)
+    const copy = await studentCopy(student)
+    await student.app.home.openProject('Automation Project')
+    await student.app.documents.openDocument(FIND_PDF.displayName)
+    // A live copy keeps the teacher's record ids.
+    await expect(student.app.canvas.item(noteId)).toBeVisible({ timeout: 20_000 })
+
+    const dialog = await student.app.canvas.openNoteEditor(noteId)
+    await expect(dialog.getByRole('heading', { name: 'Teacher\'s note' })).toBeVisible()
+    await expect(dialog.getByText('VIEW ONLY', { exact: true })).toHaveAttribute('title', 'Sent by your teacher. It updates when they change it, and cannot be edited here.')
+    await expect(dialog).toContainText('From the teacher')
+    await expect(dialog.locator('[contenteditable="true"]')).toHaveCount(0)
+    const duplicate = dialog.getByRole('button', { name: 'Duplicate to edit' })
+    await expect(duplicate).toHaveAttribute('title', 'Make your own copy of this note and edit that')
+    await duplicate.click()
+    await expect(dialog).toBeHidden()
+    await student.app.toasts.expectShown('Your editable copy is beside the original — double-tap it to edit')
+
+    const notes = async () => (await readStore<Note>(student.page, 'workspaceItems')).filter((i) => i.type === 'note' && i.projectId === copy.id)
+    await expect.poll(async () => (await notes()).length, { timeout: 15_000, message: 'the copy is saved' }).toBe(2)
+    const all = await notes()
+    const original = all.find((n) => n.id === noteId)!
+    const mine = all.find((n) => n.id !== noteId)!
+    expect(mine.data.content).toBe(original.data.content)
+    expect(mine.data.private).toBe(false)
+    expect([mine.x - original.x, mine.y - original.y]).toEqual([24, 24])
+
+    // The copy is the student's own: it opens for editing, without the mark.
+    const own = await student.app.canvas.openNoteEditor(mine.id)
+    await expect(own.getByRole('heading', { name: 'Edit Note' })).toBeVisible()
+    await expect(own.getByText('VIEW ONLY', { exact: true })).toHaveCount(0)
+    await expect(own.locator('[contenteditable="true"]').first()).toBeVisible()
+  })
+
   test('REG-534 the header Live panel pushes on demand and adds and removes recipients on the server', { tag: '@P2' }, async ({ pdfOpen: app, page, sharing }) => {
     const header = new LiveHeader(page)
     const share = await goLiveToSam(app, sharing)
@@ -300,6 +453,71 @@ test.describe('Live sharing', { tag: ['@regression', '@sharing', '@api'] }, () =
     await expect.poll(() => sharing.callsTo('PATCH', '/api/sharing/live/presence', TEACHER).map((x) => x.json)).toContainEqual({ away: true })
     await expect(badge).toHaveText('Away', { timeout: 20_000 })
     await expect(badge).toHaveAttribute('title', 'Automation User is signed out — updates resume when they return')
+  })
+
+  test('REG-941 a recording still on its way shows "Receiving audio…" on the student\'s card, only on that card, and plays once it lands', { tag: '@P2' }, async ({ pdfOpen: app, page, sharing, secondUser }) => {
+    test.setTimeout(180_000)
+    const { student, cards, firstRecordingPush, secondRecordingPush } = await twoRecordingsQueued(app, sharing, secondUser)
+
+    // The first recording push lands: the student gets both cards, but only one recording. The other is described with no bytes,
+    // stored empty, and its card says so (AudioItem.tsx) until the next sync.
+    firstRecordingPush.release()
+    await secondRecordingPush.reached
+    const missing = student.page.getByText('This audio arrived empty. It should be resent on the next sync.', { exact: true })
+    await expect(missing).toHaveCount(1, { timeout: 20_000 })
+    const secondId = (await student.page.locator('[data-workspace-item]').filter({ has: missing }).getAttribute('data-item-id'))!
+    const [second, secondCard] = [...cards].find(([, c]) => c.id === secondId)!
+    const [, firstCard] = [...cards].find(([, c]) => c.id !== secondId)!
+    const pushed = readSnapshot(sharing.callsTo('POST', pushPath)[1].form!.get('blob')!.data)
+    const recordingFiles = (blobId: string) => pushed.names.filter((n) => n.startsWith(`media/${blobId}/file.`))
+    expect(recordingFiles(firstCard.data.blobId!), 'the first recording push carries one recording').toHaveLength(1)
+    expect(recordingFiles(secondCard.data.blobId!), 'and holds the other one back').toEqual([])
+    expect(pushed.names, 'though it does describe it').toContain(`media/${secondCard.data.blobId}/meta.json`)
+    const studentCard = (id: string) => student.app.canvas.item(id)
+    await expect(studentCard(firstCard.id).locator('audio')).toHaveCount(1)
+    await expect(studentCard(firstCard.id)).not.toContainText('arrived empty')
+
+    // The second recording reaches the server; the student's download of it is held, so the card says it is on its way.
+    const download = sharing.hold('GET', mirrorPath)
+    secondRecordingPush.release()
+    await download.reached
+    const overlay = studentCard(secondId).getByRole('status')
+    await expect(overlay).toHaveText(`${second}Receiving audio…`)
+    await expect(studentCard(firstCard.id).getByRole('status')).toHaveCount(0) // a recording already here does not claim to be arriving
+    await expect(student.page.getByText('Receiving audio…', { exact: true })).toHaveCount(1)
+    await expect(progressBar(student.page, firstCard.id)).toHaveAttribute('aria-label', 'Receiving')
+    await expect(progressBar(student.page, secondId)).toHaveAttribute('aria-label', 'Receiving')
+
+    // It lands: the card plays, with nothing left saying it is missing or arriving, and the student holds the same recordings as the teacher.
+    download.release()
+    await expect(overlay).toBeHidden({ timeout: 20_000 })
+    await expect(studentCard(secondId).locator('audio')).toHaveCount(1, { timeout: 20_000 })
+    await expect(missing).toHaveCount(0)
+    await expect(progressBar(student.page, secondId)).toHaveCount(0)
+    const teacherSizes = await blobSizes(page)
+    expect(Object.values(teacherSizes).every((n) => n > 0) && Object.keys(teacherSizes).length === 2, 'the teacher holds two recordings').toBe(true)
+    await expect.poll(() => blobSizes(student.page)).toEqual(teacherSizes)
+    expect(sharing.callsTo('POST', pushPath).map((x) => x.status)).toEqual([200, 200, 200])
+  })
+
+  test('REG-942 while recordings go one per push, the teacher\'s cards say which one is uploading and which is waiting its turn', { tag: '@P3' }, async ({ pdfOpen: app, page, sharing, secondUser }) => {
+    knownDefect('DEF-514')
+    test.setTimeout(180_000)
+    const { cards, firstRecordingPush, secondRecordingPush } = await twoRecordingsQueued(app, sharing, secondUser)
+    const stateOf = async (id: string) => {
+      const bar = progressBar(page, id)
+      return (await bar.count()) ? (await bar.first().getAttribute('aria-label')) ?? '' : 'no bar'
+    }
+    const ids = [...cards.values()].map((c) => c.id)
+    await expect.poll(async () => [await stateOf(ids[0]), await stateOf(ids[1])].sort(), { message: 'one uploading, one waiting' }).toEqual(['Uploading', 'Waiting to upload'])
+    const [waitingId] = (await Promise.all(ids.map(async (id) => [id, await stateOf(id)] as const))).filter(([, s]) => s === 'Waiting to upload').map(([id]) => id)
+    const doneId = ids.find((id) => id !== waitingId)!
+    firstRecordingPush.release()
+    await secondRecordingPush.reached
+    await expect(progressBar(page, waitingId)).toHaveAttribute('aria-label', 'Uploading')
+    await expect(progressBar(page, doneId)).toHaveCount(0)
+    secondRecordingPush.release()
+    await expect(progressBar(page, waitingId)).toHaveCount(0, { timeout: 20_000 })
   })
 
   test('REG-537 the student can keep a live share out of their projects and add it back', { tag: '@P2' }, async ({ pdfOpen: app, sharing, secondUser }) => {

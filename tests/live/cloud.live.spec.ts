@@ -14,6 +14,8 @@ import { projectWithPdf, answerNextDialog, RESTORE_CONFIRM } from '../../workflo
 import { PlanScreen, SignOutDialog } from '../../pages/BackupScreens.js'
 import type { CognitiveCanvas } from '../../pages/CognitiveCanvas.js'
 import type { Page } from '@playwright/test'
+import type { DataCenter } from '../../pages/DataCenter.js'
+import { knownDefect } from '../../helpers/defects.js'
 
 interface Me { user: { userId: string; email: string; firstName?: string; lastName?: string } }
 
@@ -30,6 +32,26 @@ async function bootSignedIn(app: CognitiveCanvas, page: Page): Promise<Me> {
 
 /** A project name the app accepts (letters, numbers and spaces) that still carries the run tag. */
 const projectNameFor = (prefix: string, tag: string) => `${prefix} ${tag.replace(/[^A-Za-z0-9]/g, '')}`
+
+/**
+ * The cloud list's row texts once the real list is in: it says "No backups found" for a moment
+ * before the server answers (DEF-511). So wait for the server's answer, then for the rows to stop
+ * changing for a second.
+ */
+async function settledCloudRows(page: Page, dc: DataCenter, open: () => Promise<void>): Promise<string[]> {
+  const listed = page.waitForResponse((r) => r.request().method() === 'GET' && r.url().startsWith(`${LIVE_API}/api/backups?`), { timeout: 60_000 })
+  await open()
+  const { items = [] } = (await (await listed).json()) as { items?: unknown[] }
+  if (items.length) await expect(dc.cloudRows.first()).toBeVisible({ timeout: 30_000 })
+  let last = ''
+  let since = Date.now()
+  await expect.poll(async () => {
+    const now = JSON.stringify(await dc.cloudRows.allInnerTexts())
+    if (now !== last) { last = now; since = Date.now() }
+    return Date.now() - since
+  }, { timeout: 30_000, intervals: [250] }).toBeGreaterThanOrEqual(1_000)
+  return JSON.parse(last) as string[]
+}
 
 async function openCloud(app: CognitiveCanvas, mode: 'Backup' | 'Restore') {
   await app.dataCenter.openFromHeader()
@@ -65,10 +87,7 @@ test.describe('Live: MuulOrigin account and Muul Cloud', { tag: ['@live', '@back
     const before = ofProject(await snapshotDb(page, RESTORED_STORES), projectId)
 
     // The account's other backups are listed first, and must be exactly the same at the end.
-    await openCloud(app, 'Restore')
-    // Loaded when the real list shows its rows, or says it has none.
-    await expect(dc.cloudRows.first().or(dc.dialog.getByText('No backups found in Muul Cloud.'))).toBeVisible({ timeout: 60_000 })
-    const othersBefore = (await dc.cloudRows.allInnerTexts()).filter((t) => !t.includes(run.tag)).sort()
+    const othersBefore = (await settledCloudRows(page, dc, () => openCloud(app, 'Restore'))).filter((t) => !t.includes(run.tag)).sort()
     await dc.close.click()
 
     await openCloud(app, 'Backup')
@@ -110,7 +129,35 @@ test.describe('Live: MuulOrigin account and Muul Cloud', { tag: ['@live', '@back
     expect(await deleted).toEqual({ type: 'confirm', message: 'Are you sure you want to delete this backup from the cloud?' })
     expect((await del).status()).toBeLessThan(300)
     await expect(dc.cloudRow(run.tag)).toHaveCount(0, { timeout: 60_000 })
-    expect((await dc.cloudRows.allInnerTexts()).filter((t) => !t.includes(run.tag)).sort()).toEqual(othersBefore)
+    await dc.close.click()
+    expect((await settledCloudRows(page, dc, () => openCloud(app, 'Restore'))).filter((t) => !t.includes(run.tag)).sort()).toEqual(othersBefore)
+  })
+
+  test('REG-940 Restore from Cloud never says "No backups found" while it is still loading an account that has backups', { tag: '@P3' }, async ({ app, page, run }) => {
+    knownDefect('DEF-511')
+    const dc = app.dataCenter
+    await bootSignedIn(app, page)
+    // The account surely has a backup: this test's own (removed at teardown by its run tag).
+    await projectWithPdf(app, page, projectNameFor('Flash', run.tag))
+    await openCloud(app, 'Backup')
+    await dc.description.fill(`Loading check ${run.tag}`)
+    await dc.createBackup.click()
+    await app.toasts.expectShown('Backed up to Cloud', 120_000)
+    await expect(dc.dialog).toBeHidden()
+
+    // Watch every change to the page from before the click, so a message shown for an instant is seen too.
+    await page.evaluate(() => {
+      const w = window as unknown as { __saidNoBackups: boolean }
+      w.__saidNoBackups = false
+      new MutationObserver(() => { if (document.body.innerText.includes('No backups found in Muul Cloud.')) w.__saidNoBackups = true })
+        .observe(document.body, { childList: true, subtree: true, characterData: true })
+    })
+    const listed = page.waitForResponse((r) => r.request().method() === 'GET' && r.url().startsWith(`${LIVE_API}/api/backups?`), { timeout: 60_000 })
+    await openCloud(app, 'Restore')
+    const { items = [] } = (await (await listed).json()) as { items?: unknown[] }
+    expect(items.length, 'the server lists the backup').toBeGreaterThan(0)
+    await expect(dc.cloudRow(run.tag)).toHaveCount(1, { timeout: 30_000 })
+    expect(await page.evaluate(() => (window as unknown as { __saidNoBackups: boolean }).__saidNoBackups), 'said "No backups found" while loading').toBe(false)
   })
 
   test('REG-902 signing out ends the real MuulOrigin session for this browser and keeps the local projects', { tag: '@P2' }, async ({ app, page, run }) => {

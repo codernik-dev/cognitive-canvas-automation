@@ -80,6 +80,7 @@ export const test = base.extend<SharingFixtures>({
     const backend = new SharingBackend()
     await backend.attach(muul)
     await provide(backend)
+    backend.releaseAll()
   },
 
   // Re-declared so every booted layer waits for the fake to be attached.
@@ -95,6 +96,7 @@ export const test = base.extend<SharingFixtures>({
       opened.push(u)
       return u
     })
+    sharing.releaseAll() // before the contexts close, so nothing they asked for is left held
     for (const u of opened) await u.context.close()
     if (errors.length) await testInfo.attach('second-user-page-errors.txt', { body: errors.join('\n\n'), contentType: 'text/plain' })
     if (testInfo.status === testInfo.expectedStatus) expect(errors, 'uncaught exceptions in a second user\'s page').toEqual([])

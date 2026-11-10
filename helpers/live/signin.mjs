@@ -38,7 +38,9 @@ try {
   while (!(await context.cookies()).some((c) => c.name === 'mo_refresh_token' && c.domain.endsWith('muulorigin.com'))) {
     if (Date.now() > deadline) {
       const shown = (await page.locator('[role="alert"]').allInnerTexts().catch(() => [])).join(' ').trim()
-      throw new Error(`MuulOrigin sign-in did not complete${shown ? `: ${shown}` : ''}`)
+      // What the page said instead (its visible text holds no typed value, so neither credential).
+      const said = (await page.locator('body').innerText().catch(() => '')).replace(/\s+/g, ' ').trim().slice(0, 300)
+      throw new Error(`MuulOrigin sign-in did not complete${shown ? `: ${shown}` : ''} (at ${new URL(page.url()).pathname}; the page said: ${said})`)
     }
     await page.waitForTimeout(250)
   }

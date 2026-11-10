@@ -42,6 +42,15 @@ export const ENV = {
    */
   liveEmail: process.env.CC_LIVE_EMAIL || undefined,
   livePassword: process.env.CC_LIVE_PASSWORD || undefined,
+  /**
+   * Live sharing (tests/live/*sharing*.live.spec.ts): the accounts that RECEIVE,
+   * comma-separated emails of real MuulOrigin users on the Free plan, with one
+   * password for all of them. The QA account above is the teacher, so it must
+   * be on a paid plan. Environment only, like the QA account. Unset: the
+   * sharing tests that need a student are skipped.
+   */
+  liveStudents: (process.env.CC_LIVE_STUDENTS ?? '').split(',').map((s) => s.trim()).filter(Boolean),
+  liveStudentPassword: process.env.CC_LIVE_STUDENT_PASSWORD || undefined,
 } as const
 
 /** This repository's root. */

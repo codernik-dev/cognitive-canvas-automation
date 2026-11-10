@@ -48,11 +48,24 @@ export interface LiveRun {
 interface LiveOptions { liveCloudSync: boolean }
 interface LiveFixtures { run: LiveRun; liveSession: string }
 
-/** A fresh real MuulOrigin session for the QA account, signed in out of process. Returns its storage state file. */
-export async function newLiveSession(): Promise<{ file: string; dispose: () => void }> {
+/**
+ * A fresh real MuulOrigin session, signed in out of process: the QA account, or
+ * `account` (a sharing student). Returns its storage state file.
+ */
+export async function newLiveSession(account?: { email: string; password: string }): Promise<{ file: string; dispose: () => void }> {
   const dir = mkdtempSync(path.join(os.tmpdir(), 'cc-live-'))
   const file = path.join(dir, 'session.json')
-  await promisify(execFile)(process.execPath, [SIGNIN, file], { env: { ...process.env }, timeout: 120_000 })
+  const env = account ? { ...process.env, CC_LIVE_EMAIL: account.email, CC_LIVE_PASSWORD: account.password } : { ...process.env }
+  // A sign-in now and then does not complete (the sharing tests sign in several accounts per test): try again after a pause.
+  for (let attempt = 1; ; attempt++) {
+    try {
+      await promisify(execFile)(process.execPath, [SIGNIN, file], { env, timeout: 120_000 })
+      break
+    } catch (e) {
+      if (attempt === 3) throw e
+      await new Promise((r) => setTimeout(r, 20_000 * attempt))
+    }
+  }
   return { file, dispose: () => rmSync(dir, { recursive: true, force: true }) }
 }
 
@@ -124,14 +137,37 @@ export const test = base.extend<LiveOptions & LiveFixtures>({
       const tag = `e2e-${Date.now().toString(36)}-${testInfo.workerIndex}`
       const apiCalls: string[] = []
       await installLiveRoutes(context, liveCloudSync, apiCalls)
+      // Evidence of how the real server answered: each call of the teacher's pages with when it left, its status
+      // and how long it took, or "no answer" (a slow or silent server shows here). Method and path only, no data.
+      const t0 = Date.now()
+      const timings: string[] = []
+      const open = new Map<object, { i: number; at: number }>()
+      context.on('request', (r) => {
+        const u = new URL(r.url())
+        if (u.origin !== LIVE_API || r.method() === 'OPTIONS') return
+        open.set(r, { i: timings.push(`+${((Date.now() - t0) / 1000).toFixed(1)}s ${r.method()} ${u.pathname} (no answer)`) - 1, at: Date.now() })
+      })
+      const answered = (r: object, outcome: string) => {
+        const e = open.get(r)
+        if (!e) return
+        open.delete(r)
+        timings[e.i] = timings[e.i].replace(/ \(no answer\)$/, ` -> ${outcome} in ${Date.now() - e.at} ms`)
+      }
+      context.on('requestfinished', (r) => { void r.response().then((res) => answered(r, String(res?.status() ?? '?')), () => answered(r, '?')) })
+      context.on('requestfailed', (r) => answered(r, `failed (${r.failure()?.errorText ?? '?'})`))
 
       await provide({ tag, apiCalls })
 
       await testInfo.attach('live-api-calls.txt', { body: apiCalls.join('\n'), contentType: 'text/plain' })
-      // Teardown: delete every cloud backup this test created (and only those).
+      await testInfo.attach('live-api-timings.txt', { body: timings.join('\n'), contentType: 'text/plain' })
+      // Teardown: delete every cloud backup this test created (and only those). From a blank page on the
+      // app's address, where the app's session is readable: a second copy of the app booting here could
+      // navigate mid-request ("Failed to fetch"). A network failure is tried twice more.
       const cleaner = await context.newPage()
-      await cleaner.goto(`${LIVE_ORIGIN}/`)
-      const removed = await cleaner.evaluate(async ({ api, tag }) => {
+      const blank = `${LIVE_ORIGIN}/__live-cleanup__`
+      await cleaner.route(blank, (r) => r.fulfill({ contentType: 'text/html', body: '<!doctype html><title>cleanup</title>' }))
+      await cleaner.goto(blank)
+      const clean = () => cleaner.evaluate(async ({ api, tag }) => {
         const token = localStorage.getItem('mo_token') ?? document.cookie.match(/(?:^|; )mo_token=([^;]+)/)?.[1]
         if (!token) return 'no session'
         const auth = { Authorization: `Bearer ${decodeURIComponent(token)}` }
@@ -152,6 +188,15 @@ export const test = base.extend<LiveOptions & LiveFixtures>({
         for (const id of mine) await fetch(`${api}/api/backups/${id}?product=CognitiveCanvas`, { method: 'DELETE', headers: auth })
         return `removed ${mine.length}`
       }, { api: LIVE_API, tag })
+      let removed = ''
+      for (let attempt = 1; !removed; attempt++) {
+        try {
+          removed = await clean()
+        } catch (e) {
+          if (attempt === 3) throw e
+          await new Promise((r) => setTimeout(r, 5_000 * attempt))
+        }
+      }
       await testInfo.attach('live-cleanup.txt', { body: removed, contentType: 'text/plain' })
       await cleaner.close()
     },

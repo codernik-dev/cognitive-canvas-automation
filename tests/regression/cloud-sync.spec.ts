@@ -176,6 +176,43 @@ test.describe('Cloud sync', { tag: ['@regression', '@backup', '@cloud-sync', '@a
     await expect(app.dataCenter.dialog.getByText('1 kept off the cloud')).toHaveCount(0)
   })
 
+  test('REG-951 with no projects the Cloud section says anything new backs up on its own; a project that never reached the cloud is taken off sync with its own message and nothing deleted; the buttons say what they do', { tag: '@P3' }, async ({ signedIn: app, ui, page, cloud }) => {
+    await openCloudSync(app)
+    const cs = ui.cloudSync
+    const dialog = app.dataCenter.dialog
+    await expect(dialog.getByText('Your projects back up automatically in the background, so you can pick them up on another device.', { exact: true })).toBeVisible()
+    await expect(dialog.getByText('No projects yet. Anything you create will back up automatically.', { exact: true })).toBeVisible()
+    // The scheduler (hooks/useCloudSync.ts) first looks 15 s after the app starts and, never having synced, syncs
+    // at once; after that it waits for 2 quiet minutes after an edit. Let that first run happen with nothing to
+    // upload, so the project made below stays out of the cloud for the rest of the test.
+    await expect.poll(async () => (await syncPrefs(page)).lastSyncAt ?? 0, { timeout: 45_000, message: 'the first automatic sync ran' }).toBeGreaterThan(0)
+    await app.dataCenter.close.click()
+    await expect(dialog).toBeHidden()
+
+    await createProjects(app, ['Never Uploaded'])
+    const ids = await projectIds(page)
+    await openCloudSync(app)
+    await expect(cs.row('Never Uploaded')).toHaveText('Never UploadedNot yet backed upRemove')
+    await expect(cs.removeButton('Never Uploaded')).toHaveAttribute('title', "Deletes this project's cloud copy and stops it syncing. The project stays on this device.")
+    await expect(dialog.getByText('deletes only the cloud copy and stops that project syncing - it stays on this device, and your other devices drop their copy on their next sync.', { exact: false })).toBeVisible()
+
+    const deletesBefore = [...cloud.state.deletes]
+    await cs.removeButton('Never Uploaded').click()
+    await expect(cs.removeButton('Never Uploaded')).toHaveText('Remove from cloud?')
+    await cs.removeButton('Never Uploaded').click()
+    // Nothing of it was in the cloud, so the message says it stops syncing rather than that it was removed.
+    await app.toasts.expectShown('"Never Uploaded" is no longer syncing to the cloud', 30_000)
+    expect(cloud.state.deletes).toEqual(deletesBefore)
+    expect(cloud.state.syncCopies(ids['Never Uploaded'])).toHaveLength(0)
+    await expect(cs.row('Never Uploaded')).toHaveText('Never UploadedKept off the cloudSync again')
+    await expect(cs.syncAgain('Never Uploaded')).toHaveAttribute('title', 'Let this project sync to the cloud again')
+    await expectStoreCount(page, 'projects', 1)
+
+    await cs.syncAgain('Never Uploaded').click()
+    await app.toasts.expectShown('"Never Uploaded" will sync again on the next backup')
+    await expect(cs.row('Never Uploaded')).toHaveText('Never UploadedNot yet backed upRemove')
+  })
+
   test('REG-484 a failed upload and a full cloud are each reported on the toast and the status line', { tag: '@P2' }, async ({ signedIn: app, ui, cloud }) => {
     await createProjects(app, ['Sync Trouble'])
     await openCloudSync(app)
